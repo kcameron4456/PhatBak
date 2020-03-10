@@ -52,7 +52,7 @@ vector <string> LiveFile::GetSubs () {
     return Subs;
 }
 
-string LiveFile::MakeInfoHeader () {
+string LiveFile::MakeInfoHeader () const {
     stringstream res;
     res << "dev:"   << Stats.st_dev  << " ";
     res << "inode:" << INode()       << " ";

@@ -35,7 +35,7 @@ class LiveFile {
     inline void     Trunc()       {Stats.st_size = 0;}
 
     vector <string> GetSubs ();
-    string MakeInfoHeader ();
+    string MakeInfoHeader () const ;
 
     void     Read (void *DataBuffer, int XferSize);
     void     Open();

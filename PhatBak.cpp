@@ -1,15 +1,19 @@
 #include "Create.h"
 #include "LiveFile.h"
 #include "Logging.h"
+#include "Opts.h"
 
 #include <stdio.h>
 
-int main () {
-    Create C;
-
+int main (int argc, const char **argv) {
     try {
-        C.DoCreate (CanonizeFileName ("../tartar"));
-        //C.DoCreate (CanonizeFileName ("../.."));
+        O.ParseCmdLine (argc, argv);
+
+        if (O.Operation == Opts::DoCreate) {
+            Create C;
+            for (auto Dir : O.FileArgs)
+                C.DoCreate (CanonizeFileName (Dir));
+        }
     }
 
     // handle exceptions

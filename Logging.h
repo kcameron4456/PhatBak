@@ -62,7 +62,7 @@ class PB_Exception {
 class PB_ExceptionFMT : public PB_Exception {
     public:
     PB_ExceptionFMT (int SrcLine, const char *SrcFile, const string &fmt, ...) {
-        MsgType = "TarTar Format Error: ";
+        MsgType = "PhatBak Format Error: ";
         PB_VARGS(fmt);
         MakeMessage (SrcLine, SrcFile, fmt, args);
         va_end(args);
