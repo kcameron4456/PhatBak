@@ -52,12 +52,14 @@ class Archive {
     string    ArchDirName;
     RepoInfo *Repo;
     FILE     *LogFile;
+    FILE     *ListFile;
     BlockList FInfoBlocks;
     BlockList ChunkBlocks;
 
     Archive () {} // blank constructor
     Archive (RepoInfo *repo, const string &name);
     void Init (RepoInfo *repo, const string &name);
+    void PushFileList (const string &Fname, BlockIdxType Block, const string &Hash);
 };
 
 class ArchFile {

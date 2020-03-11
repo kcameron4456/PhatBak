@@ -12,7 +12,7 @@ Hash::Hash (eHashType T) {
     HashSize = mhash_get_block_size(MHashTypes [T]);
 }
 
-void Hash::Update (char *Buf, int BufSize) {
+void Hash::Update (const char *Buf, int BufSize) {
     mhash (Hasher, Buf, BufSize);
 }
 

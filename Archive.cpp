@@ -39,6 +39,11 @@ void Archive::Init (RepoInfo *repo, const string &name) {
     O.Print (OptFile);
     fclose (OptFile);
 
+    // create the file list
+    string ListN = ArchDirName + "/List";
+    if ((ListFile = fopen (ListN.c_str(), "w")) < 0)
+        THROW_PBEXCEPTION_IO ("Can't create List file: " + ListN);
+
     // create new archive subdirs
     for (auto SubDir : {"Chunks", "FInfo", "Extra"}) {
         error_code ec;
@@ -50,6 +55,11 @@ void Archive::Init (RepoInfo *repo, const string &name) {
     // initialize block allocators
     FInfoBlocks.Init (ArchDirName + "/FInfo");
     ChunkBlocks.Init (ArchDirName + "/Chunks");
+}
+
+void Archive::PushFileList (const string &Fname, BlockIdxType Block, const string &Hash) {
+    string FileEntry = Fname + " /../ " + to_string(Block) + " U " + Hash + "\n";
+    fputs (FileEntry.c_str(), ListFile);
 }
 
 ArchFile::ArchFile (Archive *arch) {
@@ -92,6 +102,14 @@ void ArchFile::Create (LiveFile &lf) {
     if (fwrite (FInfo.c_str(), FInfo.size(), 1, FInfoF) != 1)
         THROW_PBEXCEPTION_IO ("Error writing to FInfo block file: " + Arch->FInfoBlocks.Idx2FileName(BlkIdx));
     fclose (FInfoF);
+
+    // get the finfo block hash
+    Hash Hasher (O.HashType);
+    Hasher.Update (FInfo.c_str(), FInfo.size());
+    string HashHex = Hasher.GetHash();
+
+    // update archive file list
+    Arch->PushFileList (Name, BlkIdx, HashHex);
 }
 
 BlockIdxType BlockList::Alloc () {
