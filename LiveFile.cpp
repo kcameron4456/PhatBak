@@ -54,14 +54,14 @@ vector <string> LiveFile::GetSubs () {
 
 string LiveFile::MakeInfoHeader () const {
     stringstream res;
-    res << "dev:"   << Stats.st_dev  << " ";
-    res << "inode:" << INode()       << " ";
-    res << "mode:"  << Stats.st_mode << " ";
-    res << "uid:"   << Stats.st_uid  << " ";
-    res << "gid:"   << Stats.st_gid  << " ";
-    res << "size:"  << Stats.st_size << " ";
-    res << "mtime:" << mTime()       << " ";
-    res << "ctime:" << cTime();
+    res << "dev:"   << hex << Stats.st_dev  << " ";
+    res << "inode:" << hex << INode()       << " ";
+    res << "mode:"  << hex << Stats.st_mode << " ";
+    res << "uid:"   << hex << Stats.st_uid  << " ";
+    res << "gid:"   << hex << Stats.st_gid  << " ";
+    res << "size:"  <<        Stats.st_size << " "; // keep size in decimal to make it easier to read and debug
+    res << "mtime:" << hex << mTime()       << " ";
+    res << "ctime:" << hex << cTime();
 
     return res.str();
 }
