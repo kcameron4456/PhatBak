@@ -96,7 +96,7 @@ void ArchFile::Create (LiveFile &lf) {
         lf.Close();
     }
     if (lf.IsSLink()) {
-        FInfo += "L: " + lf.Target;
+        FInfo += "L: " + lf.Target + "\n";
     }
 
     // Create the file info block in the archive
@@ -128,7 +128,7 @@ BlockIdxType BlockList::Alloc () {
     } else {
         // allocate from the first range
         BlockRangeTuple R0 = Ranges[0];
-        Idx   = ++R0.max;
+        Idx = ++R0.max;
 
         // see if we need to merge with the next range
         if (Ranges.size() > 1) {
