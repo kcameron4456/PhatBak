@@ -95,6 +95,9 @@ void ArchFile::Create (LiveFile &lf) {
         }
         lf.Close();
     }
+    if (lf.IsSLink()) {
+        FInfo += "L: " + lf.Target;
+    }
 
     // Create the file info block in the archive
     BlockIdxType BlkIdx = Arch->FInfoBlocks.Alloc();
