@@ -66,26 +66,6 @@ string LiveFile::MakeInfoHeader () const {
     return res.str();
 }
 
-void LiveFile::Read (void *DataBuffer, int XferSize) {
-    int RdSize;
-    if ((RdSize = read (FD, DataBuffer, XferSize)) != XferSize)
-         THROW_PBEXCEPTION_IO ("Incomplete read size to file (%s).  Expected %d but got %d",
-                                Name, XferSize, RdSize);
-}
-
-void LiveFile::Open () {
-    if (FD >= 0)
-         THROW_PBEXCEPTION ("File already open: %s", Name.c_str());
-    if ((FD = open (Name.c_str(), O_RDONLY)) < 0)
-         THROW_PBEXCEPTION_IO ("Can't open file: %s ", Name.c_str());
-}
-
-void LiveFile::Close () {
-    if (close (FD) < 0)
-         THROW_PBEXCEPTION_IO ("Can't close file: %s ", Name.c_str());
-    FD = -1;
-}
-
 void SplitFileName (const string &RawName, string &Path, string &Name) {
     // split into path and leaf names
     // leaf is just the part after the last "/"
@@ -163,4 +143,31 @@ string CanonizeFileName (const string &RawName) {
 //printf ("CanonizeFileName: FullName=%s\n", FullName.c_str());
 
     return FullName;
+}
+
+void LiveFile::Close () {
+    if (close (FD) < 0)
+         THROW_PBEXCEPTION_IO ("Can't close file: %s ", Name.c_str());
+    FD = -1;
+}
+
+void LiveFile::OpenRead () {
+    if ((FD = open (Name.c_str(), O_RDONLY)) < 0)
+         THROW_PBEXCEPTION_IO ("Can't open file for read: %s ", Name.c_str());
+}
+
+void LiveFile::OpenWrite () {
+    if ((FD = open (Name.c_str(), O_WRONLY)) < 0)
+         THROW_PBEXCEPTION_IO ("Can't open file for write: %s ", Name.c_str());
+}
+
+int LiveFile::Read (char *Buf, int ReqSize) {
+    int RdSize;
+    if ((RdSize = read (FD, Buf, ReqSize)) < 0)
+         THROW_PBEXCEPTION_IO ("Error reading from: " + Name);
+    return RdSize;
+}
+
+int LiveFile::ReadChunk (char *Buf) {
+    return Read (Buf, O.ChunkSize);
 }

@@ -69,9 +69,9 @@ class ArchFile {
     vector <uint64_t> DataBlkNs;
 
     ArchFile () {} // blank constructor
-    ArchFile (Archive *arch, const LiveFile &lf);
+    ArchFile (Archive *arch);
 
-    void Create ();  // add file to archive
+    void Create (LiveFile &lf);  // add file to archive
 };
 
 #endif // ARCHIVE_H

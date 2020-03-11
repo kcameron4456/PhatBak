@@ -1,0 +1,28 @@
+#include "Hash.h"
+#include "Logging.h"
+
+#include <mhash.h>
+#include <string>
+using namespace std;
+
+Hash::Hash (eHashType T) {
+    if (T >= HashType_Null)
+        THROW_PBEXCEPTION ("Unrecognized hash type: %d", T);
+    Hasher = mhash_init (MHashTypes [T]);
+    HashSize = mhash_get_block_size(MHashTypes [T]);
+}
+
+void Hash::Update (char *Buf, int BufSize) {
+    mhash (Hasher, Buf, BufSize);
+}
+
+string Hash::GetHash () {
+    unsigned char *HashBin = (unsigned char *)mhash_end (Hasher);
+    string HashHex;
+    for (int i = 0; i < HashSize; i++) {
+        char Hex [3];
+        snprintf (Hex, 3, "%02x", HashBin[i]);
+        HashHex += Hex;
+    }
+    return HashHex;
+}

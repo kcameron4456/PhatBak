@@ -16,7 +16,7 @@ endif
 
 CXXFLAGS =
 CPPFLAGS += -std=c++17 $(MYCFLAGS)
-LDFLAGS  += -lpthread -lstdc++fs -lzstd
+LDFLAGS  += -lpthread -lstdc++fs -lzstd -lmhash
 
 .PHONY: default
 default:  $(DEFTARGS)

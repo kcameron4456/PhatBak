@@ -1,6 +1,8 @@
 #ifndef OPTS_H
 #define OPTS_H
 
+#include "Hash.h"
+
 #include <string>
 #include <vector>
 #include <list>
@@ -21,8 +23,8 @@ class Opts {
     string    ArchDirName;      // Archive directory withing the repo
     int       BlockNumDigits;   // Number of digits to assign to each level of a blocked directory
     int       BlockNumModulus;  // Amount by which divide block indices to create block levels
-    int       BufferSize;       // Size of buffers for file data
-    int       BufferCount;      // Number of buffers for each file
+    eHashType HashType;         // hash algorythm
+    int       ChunkSize;        // Max size of data blocks into which file data are stored
     bool      ShowFiles;        // Show file names as they are archived or extracted
     bool      ArchDiag;         // Show diagnostic for archive file blocks in Test mode
     int       NumThreads;       // initial number of threads to launch

@@ -37,7 +37,10 @@ class LiveFile {
     vector <string> GetSubs ();
     string MakeInfoHeader () const ;
 
-    void     Read (void *DataBuffer, int XferSize);
+    int      Read (char *Buf, int ReqSize);
+    int      ReadChunk (char *Chunk);
+    void     OpenRead();
+    void     OpenWrite ();
     void     Open();
     void     Close();
 

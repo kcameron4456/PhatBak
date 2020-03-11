@@ -139,8 +139,6 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     VersionMinor = VERSION_MINOR;
     Operation    = DoUndef;
     ShowFiles    = 0;
-    BufferSize   = 300000;
-    BufferCount  = 12;
     NumThreads   = 200;
     IntCompType  = 0; // TBD: TTCMPT_NONE;
     IntComprLvl  = 2;
@@ -148,6 +146,8 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     BlockNumModulus = 1;
     for (int i = 0; i < BlockNumDigits; i++)
         BlockNumModulus *= 10;
+    ChunkSize    = 1 << 16;
+    HashType     = HashType_MD5;
 
     // save command line
     int argidx;
@@ -224,8 +224,6 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PARSE_MinusFlg ("-v"       ,, ShowFiles  , 1,)
         PARSE_MinusFlg ("-D"       ,, ShowFiles=ArchDiag, 1, )
         PARSE_MinusVal ("-T"   ,"%d", &NumThreads,)
-        PARSE_MinusVal ("-Bs"  ,"%d", &BufferSize,)
-        PARSE_MinusVal ("-Bc"  ,"%d", &BufferCount,)
         // TBD: PARSE_MinusFlg ("-iZ"      ,,  TmpInt   , 1, IntCompType=TTCMPT_ZSTD;)
         PARSE_MinusVal ("-iZl","%d", &IntComprLvl,)
         PARSE_MinusFlg ("-h"       ,, TmpInt     , 1, PrintHelp();)
@@ -284,9 +282,10 @@ void Opts::Print (FILE *F) {
     fprintf (F, "   Operation       = %s\n", OpText());
     fprintf (F, "   RepoDirName     = %s\n", RepoDirName.c_str());
     fprintf (F, "   ArchDirName     = %s\n", ArchDirName.c_str());
-    fprintf (F, "   BufferSize      = %d\n", BufferSize);
     fprintf (F, "   ShowFiles       = %d\n", ShowFiles);
     fprintf (F, "   FileArgs        = %s\n", Files.c_str());
     fprintf (F, "   BlockNumDigits  = %d\n", BlockNumDigits);
     fprintf (F, "   BlockNumModulus = %d\n", BlockNumModulus);
+    fprintf (F, "   ChunkSize       = %d\n", ChunkSize);
+    fprintf (F, "   HashType        = %s\n", HashNames[HashType]);
 }

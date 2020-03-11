@@ -17,7 +17,7 @@ void Create::DoCreate (const string &Name) {
 printf ("Create::DoCreate %s\n", Name.c_str());
     // create local and archive file structures
     LiveFile LF (Name);
-    ArchFile AF (&Arch, LF);
+    ArchFile AF (&Arch);
 
     // remember info for each file
     FileList.push_back (Name);          // list of all files
@@ -26,7 +26,7 @@ printf ("Create::DoCreate %s\n", Name.c_str());
     Inodes [LF.Dev()][LF.INode()] = AF; // keep track of inodes we've seen for each device
 
     // create the archived file
-    AF.Create();
+    AF.Create(LF);
 
     // create sub dirs/files
     for (auto Sub : LF.GetSubs()) {

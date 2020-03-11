@@ -1,6 +1,7 @@
 #include "Archive.h"
 #include "Logging.h"
 #include "Opts.h"
+#include "Hash.h"
 
 #include <filesystem>
 #include <string>
@@ -51,15 +52,39 @@ void Archive::Init (RepoInfo *repo, const string &name) {
     ChunkBlocks.Init (ArchDirName + "/Chunks");
 }
 
-ArchFile::ArchFile (Archive *arch, const LiveFile &lf) {
-    Arch  = arch;
-    Name  = lf.Name;
-    Stats = lf.MakeInfoHeader ();
+ArchFile::ArchFile (Archive *arch) {
+    Arch = arch;
 }
 
-void ArchFile::Create () {
+void ArchFile::Create (LiveFile &lf) {
+    Name  = lf.Name;
+    Stats = lf.MakeInfoHeader ();
+
     // Create Finfo file contents
     string FInfo = Stats + "\n";
+
+    // For files, create chunks and FInfo entries
+    if (lf.IsFile()) {
+        char Chunk [O.ChunkSize];
+        lf.OpenRead();
+        while (int RdSize = lf.ReadChunk (Chunk)) {
+            // write the chunk to the archive
+            BlockIdxType ChnkIdx = Arch->ChunkBlocks.Alloc();
+            FILE *ChunkF = Arch->ChunkBlocks.OpenBlockFile (ChnkIdx, "wb");
+            if (fwrite (Chunk, RdSize, 1, ChunkF) != 1)
+                THROW_PBEXCEPTION_IO ("Error writing to Chunk block file: " + Arch->ChunkBlocks.Idx2FileName(ChnkIdx));
+            fclose (ChunkF);
+
+            // compute hash
+            Hash Hasher (O.HashType);
+            Hasher.Update (Chunk, RdSize);
+            string HashHex = Hasher.GetHash();
+
+            // add chunk to finfo
+            FInfo += "U: " + to_string (ChnkIdx) + " " + HashHex + "\n";
+        }
+        lf.Close();
+    }
 
     // Create the file info block in the archive
     BlockIdxType BlkIdx = Arch->FInfoBlocks.Alloc();
