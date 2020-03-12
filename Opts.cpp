@@ -1,4 +1,5 @@
 #include "Opts.h"
+#include "Utils.h"
 
 #include <grp.h>
 #include <unistd.h>
@@ -84,6 +85,8 @@ static void PrintVersion() {
     exit (0);
 }
 
+// maybe use this for sizes someday
+#if 0
 static int ParseSize (const char *SizeStr) {
     const char *Save = SizeStr;
     int Num = 0;
@@ -120,6 +123,7 @@ static int ParseSize (const char *SizeStr) {
 
     return Num;
 }
+#endif
 
 // macro to skip to the next argument
 #define NXTARG { \
@@ -194,7 +198,7 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
             } \
         }
 
-        int TmpInt = 0;
+        //int TmpInt = 0;
         PARSE_MinusFlg ("-c"                 , TESTOP, Operation  , DoCreate , )
         PARSE_MinusFlg ("-x"                 , TESTOP, Operation  , DoExtract, )
         PARSE_MinusFlg ("-t"                 , TESTOP, Operation  , DoTest   , )
@@ -207,10 +211,10 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PARSE_MinusVal ("--ChunkSize"       ,"%d", &ChunkSize,)
         PARSE_MinusVal ("--BlockNumDigits"  ,"%d", &BlockNumDigits,)
         PARSE_MinusVal ("--BlockNumModulus" ,"%d", &BlockNumModulus,)
-        PARSE_MinusFlg ("-h"                ,, TmpInt     , 1, PrintHelp();)
-        PARSE_MinusFlg ("-help"             ,, TmpInt     , 1, PrintHelp();)
-        PARSE_MinusFlg ("--help"            ,, TmpInt     , 1, PrintHelp();)
-        PARSE_MinusFlg ("--version"         ,, TmpInt     , 1, PrintVersion();)
+        PARSE_MinusFlg ("-h"                ,, arg     , arg, PrintHelp();)
+        PARSE_MinusFlg ("-help"             ,, arg     , arg, PrintHelp();)
+        PARSE_MinusFlg ("--help"            ,, arg     , arg, PrintHelp();)
+        PARSE_MinusFlg ("--version"         ,, arg     , arg, PrintVersion();)
 
         ArgError(arg);
     }
@@ -225,18 +229,13 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PrintHelp(1);
     }
     string RepoArchName = argv[argidx++];
-    int SepPos = RepoArchName.find ("::");
-    if (SepPos == string::npos) {
+    vector <string> Parts = Utils::SplitStr (RepoArchName, "::");
+    if (Parts.size() != 2) {
         printf ("Unrecognized Repo::Archive format: %s\n", RepoArchName.c_str());
         PrintHelp(1);
     }
-    RepoDirName = RepoArchName.substr (0, SepPos);
-    SepPos += 2;
-    if (SepPos >= RepoArchName.size()) {
-        printf ("Archive name not given: %s\n", RepoArchName.c_str());
-        PrintHelp(1);
-    }
-    ArchDirName = RepoArchName.substr (SepPos);
+    RepoDirName = Parts[0];
+    ArchDirName = Parts[1];
 
     // remaining args are file/dir names for create or extract
     // default to cwd
@@ -253,17 +252,13 @@ Opts::Opts () {
 }
 
 void Opts::Print (FILE *F) {
-    string Files;
-    for (int i = 0; i < FileArgs.size(); i++)
-        Files += FileArgs[i] + " ";
-
-    fprintf (F, "Program Options:\n");
+    fprintf (F, "Options:\n");
     fprintf (F, "   CmdLine         = %s\n", CmdLine.c_str());
     fprintf (F, "   Operation       = %s\n", OpText());
     fprintf (F, "   RepoDirName     = %s\n", RepoDirName.c_str());
     fprintf (F, "   ArchDirName     = %s\n", ArchDirName.c_str());
     fprintf (F, "   ShowFiles       = %d\n", ShowFiles);
-    fprintf (F, "   FileArgs        = %s\n", Files.c_str());
+    fprintf (F, "   FileArgs        = %s\n", Utils::JoinStrs (FileArgs, " ").c_str());
     fprintf (F, "   BlockNumDigits  = %d\n", BlockNumDigits);
     fprintf (F, "   BlockNumModulus = %d\n", BlockNumModulus);
     fprintf (F, "   ChunkSize       = %d\n", ChunkSize);

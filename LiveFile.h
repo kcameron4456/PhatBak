@@ -47,6 +47,5 @@ class LiveFile {
 };
 
 void SplitFileName (const string &RawName, string &DirPart, string &FilePart);
-string CanonizeFileName (const string &RawName);
 
 #endif // LIVEFILE_H

@@ -12,34 +12,63 @@
 #include <mutex>
 using namespace std;
 
-class ArchiveRead {
+class Archive {
     public:
+    RepoInfo     *Repo;
     string        Name;
     string        ArchDirPath;
-    RepoInfo     *Repo;
-    BlockList     FInfoBlocks;
-    BlockList     ChunkBlocks;
+    string        ListPath;
+    string        OptionsPath;
+    string        FinfoDirPath;
+    string        ChunkDirPath;
+    BlockList    *FInfoBlocks;
+    BlockList    *ChunkBlocks;
 
-     ArchiveRead () {} // blank constructor
-    ~ArchiveRead () {} // blank destructor
-    void Init (RepoInfo *repo, Opts &o);
-    void DoExtract();
-    void ParseOptions();
+     Archive (RepoInfo *repo);
+    ~Archive ();
 };
 
-class ArchFileRead {
-    public:
-    string            Name;
-    ArchiveRead      *ArchRead;
-    BlockIdxType      InfoBlkNum;
-    char              InfoBlkComp;
-    string            InfoBlkHash;
-    mutex             Mtx;
-    string            Stats;
-    vector <uint64_t> DataBlkNs;
+class ArchiveRead : public Archive {
+    Opts O;
+    void ParseOptions();
 
-    ArchFileRead () {} // blank constructor
-    ArchFileRead (ArchiveRead *arch);
+    public:
+     ArchiveRead (RepoInfo *repo, Opts &o);
+    ~ArchiveRead ();
+    void DoExtract();
+};
+
+class ChunkInfo {
+    public:
+    char         Comp;
+    BlockIdxType Idx;
+    string       Hash;
+    ChunkInfo (char comp, BlockIdxType idx, const string& hash);
+    ChunkInfo (const string &finfoline);
+};
+
+class ArchFile {
+    public:
+    Archive           *Arch;
+    string             Name;
+    BlockIdxType       InfoBlkNum;
+    char               InfoBlkComp;
+    string             InfoBlkHash;
+    mutex              Mtx;
+    string             Stats;
+    vector <ChunkInfo> DataChnks;
+
+     ArchFile (Archive *arch);
+    ~ArchFile ();
+};
+
+class ArchFileRead : public ArchFile {
+    public:
+
+     ArchFileRead (ArchiveRead *arch, const string &ListEntry, uint64_t LineNo);
+    ~ArchFileRead ();
+
+    void DoExtract ();
 };
 
 #endif // ARCHIVEREAD_H

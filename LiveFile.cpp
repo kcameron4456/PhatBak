@@ -9,7 +9,6 @@
 #include <filesystem>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 using namespace std;
 
 LiveFile::LiveFile (const string &name) {
@@ -71,62 +70,6 @@ void SplitFileName (const string &RawName, string &Path, string &Name) {
     int LastSlash = RawName.rfind ('/');
     Path = RawName.substr (0,LastSlash);
     Name = RawName.substr (LastSlash+1);
-}
-
-string CanonizeFileName (const string &RawName) {
-    // this is a painful way of doing it but I couldn't
-    // find a standard library version that wouldn't follow
-    // symbolic links
-    string FullName = RawName;
-
-    // prepend current directory to name, if needed
-    if ((FullName.substr (0,1)) != "/") {
-        char cwd [4000];
-        if (getcwd (cwd, sizeof(cwd)) == NULL)
-            THROW_PBEXCEPTION ("getcwd failed: ");
-        FullName = string(cwd) + "/" + FullName;
-    }
-
-    // tokenize by spliting on "/"
-    // do you believe this ancient c function is better than
-    // anything in the c++ string library?
-    char *WorkSave = strdup (FullName.c_str());
-    char *WorkStr  = WorkSave;
-    vector <string> Toks;
-    while (char *tok = strtok_r (WorkStr, "/", &WorkStr))
-        Toks.push_back(tok);
-    free (WorkSave);
-
-    // get rid of all instances of "."
-    vector <string> Tmp;
-    for (auto Tok : Toks)
-        if (Tok != ".")
-            Tmp.push_back(Tok);
-    Toks = Tmp;
-
-    // make multiple passes through the tokens if needed to clean up 'dir/..'
-    bool changed;
-    do {
-        changed = 0;
-        for (auto itr = Toks.begin(); itr != Toks.end(); itr++) {
-            if (*itr == "..") {
-                Toks.erase (itr);
-                if (itr != Toks.begin())
-                    Toks.erase (itr - 1);
-                changed = 1;
-                break;
-            }
-        }
-    } while (changed);
-
-    // assemble the full path from the components
-    string CanName;
-    for (auto Tok : Toks)
-        CanName += "/" + Tok;
-    if (CanName == "")
-        CanName = "/";
-
-    return CanName;
 }
 
 void LiveFile::Close () {

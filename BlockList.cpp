@@ -1,12 +1,21 @@
 #include "BlockList.h"
 #include "Logging.h"
 #include "Opts.h"
+#include "Utils.h"
 
 #include <filesystem>
 #include <string>
 #include <sstream>
 #include <stdio.h>
 namespace fs = std::filesystem;
+
+BlockList::BlockList (const string &topdir, const Opts &o) {
+    TopDir = topdir;
+    O = o;
+}
+
+BlockList::~BlockList () {
+}
 
 // allocate a block index
 BlockIdxType BlockList::Alloc () {
@@ -105,10 +114,10 @@ void BlockList::Free (BlockIdxType Idx) {
 // convert a block number to a list of directory components
 vector <string> BlockList::GetSubDirs (BlockIdxType Idx) {
     vector <string> SubDirs;
-    BlockIdxType TmpBlk = Idx / O.BlockNumModulus;
-    while (TmpBlk) {
-        BlockIdxType Part   = TmpBlk % O.BlockNumModulus;
-                     TmpBlk = TmpBlk / O.BlockNumModulus;
+    BlockIdxType TmpIdx = Idx / O.BlockNumModulus;
+    while (TmpIdx) {
+        unsigned Part   = TmpIdx % O.BlockNumModulus;
+                 TmpIdx = TmpIdx / O.BlockNumModulus;
 
         stringstream SubDir;
         SubDir << "d" << setfill('0') << setw (O.BlockNumDigits) << Part;
@@ -119,11 +128,7 @@ vector <string> BlockList::GetSubDirs (BlockIdxType Idx) {
 
 // convert a block number to a directory path
 string BlockList::Idx2DirString (BlockIdxType Idx) {
-    string DirString = TopDir;
-    vector <string> SubDirs = GetSubDirs (Idx);
-    for (auto SubDir : SubDirs)
-        DirString += "/" + SubDir;
-    return DirString;
+    return TopDir + "/" + Utils::JoinStrs (GetSubDirs (Idx), "/");
 }
 
 // convert a block number to a path relative to a top dir
@@ -148,4 +153,12 @@ FILE *BlockList::OpenBlockFile (BlockIdxType Idx, const char *mode) {
         THROW_PBEXCEPTION_IO ("Can't open block file: " + BlockFileName);
 
     return BlkFile;
+}
+
+ifstream BlockList::OpenReadStream (BlockIdxType Idx) {
+    string Name = Idx2FileName(Idx);
+    ifstream Strm (Name.c_str(), fstream::in);
+    if (Strm.fail())
+        THROW_PBEXCEPTION_IO ("Can't open %s for read", Name.c_str());
+    return Strm;
 }

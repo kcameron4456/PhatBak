@@ -10,21 +10,6 @@
 namespace fs = std::filesystem;
 
 ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name) {
-    Init (repo, name);
-}
-
-ArchiveCreate::~ArchiveCreate () {
-    time_t EndTime = time(NULL);
-    fprintf (LogFile, "Backup Ended At: %s", ctime(&EndTime));
-
-    int Secs = difftime (EndTime, O.StartTime);
-    fprintf (LogFile, "Elasped Time: %d seconds\n", Secs);
-
-    fclose (LogFile);
-    fclose (ListFile);
-}
-
-void ArchiveCreate::Init (RepoInfo *repo, const string &name) {
     Repo = repo;
     Name = name;
     ArchDirName = Repo->Name + "/" + Name;
@@ -64,8 +49,22 @@ void ArchiveCreate::Init (RepoInfo *repo, const string &name) {
     }
 
     // initialize block allocators
-    FInfoBlocks.Init (ArchDirName + "/FInfo");
-    ChunkBlocks.Init (ArchDirName + "/Chunks");
+    FInfoBlocks = new BlockList (ArchDirName + "/FInfo" , O);
+    ChunkBlocks = new BlockList (ArchDirName + "/Chunks", O);
+}
+
+ArchiveCreate::~ArchiveCreate () {
+    time_t EndTime = time(NULL);
+    fprintf (LogFile, "Backup Ended At: %s", ctime(&EndTime));
+
+    int Secs = difftime (EndTime, O.StartTime);
+    fprintf (LogFile, "Elasped Time: %d seconds\n", Secs);
+
+    fclose (LogFile);
+    fclose (ListFile);
+
+    free (ChunkBlocks);
+    free (FInfoBlocks);
 }
 
 void ArchiveCreate::PushFileList (const string &Fname, BlockIdxType Block, char Comp, const string &Hash) {
@@ -92,10 +91,10 @@ void ArchFileCreate::Create (LiveFile &LF) {
         LF.OpenRead();
         while (int RdSize = LF.ReadChunk (Chunk)) {
             // write the chunk to the archive
-            BlockIdxType ChnkIdx = ArchCreate->ChunkBlocks.Alloc();
-            FILE *ChunkF = ArchCreate->ChunkBlocks.OpenBlockFile (ChnkIdx, "wb");
+            BlockIdxType ChnkIdx = ArchCreate->ChunkBlocks->Alloc();
+            FILE *ChunkF = ArchCreate->ChunkBlocks->OpenBlockFile (ChnkIdx, "wb");
             if (fwrite (Chunk, RdSize, 1, ChunkF) != 1)
-                THROW_PBEXCEPTION_IO ("Error writing to Chunk block file: " + ArchCreate->ChunkBlocks.Idx2FileName(ChnkIdx));
+                THROW_PBEXCEPTION_IO ("Error writing to Chunk block file: " + ArchCreate->ChunkBlocks->Idx2FileName(ChnkIdx));
             fclose (ChunkF);
 
             // compute hash
@@ -113,10 +112,10 @@ void ArchFileCreate::Create (LiveFile &LF) {
     }
 
     // Create the file info block in the archive
-    InfoBlkNum = ArchCreate->FInfoBlocks.Alloc();
-    FILE *FInfoF = ArchCreate->FInfoBlocks.OpenBlockFile (InfoBlkNum, "wb");
+    InfoBlkNum = ArchCreate->FInfoBlocks->Alloc();
+    FILE *FInfoF = ArchCreate->FInfoBlocks->OpenBlockFile (InfoBlkNum, "wb");
     if (fwrite (FInfo.c_str(), FInfo.size(), 1, FInfoF) != 1)
-        THROW_PBEXCEPTION_IO ("Error writing to FInfo block file: " + ArchCreate->FInfoBlocks.Idx2FileName(InfoBlkNum));
+        THROW_PBEXCEPTION_IO ("Error writing to FInfo block file: " + ArchCreate->FInfoBlocks->Idx2FileName(InfoBlkNum));
     fclose (FInfoF);
 
     // get the finfo block hash

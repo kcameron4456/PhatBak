@@ -18,10 +18,9 @@ class ArchiveCreate {
     RepoInfo      *Repo;
     FILE          *LogFile;
     FILE          *ListFile;
-    BlockList      FInfoBlocks;
-    BlockList      ChunkBlocks;
+    BlockList     *FInfoBlocks;
+    BlockList     *ChunkBlocks;
 
-    ArchiveCreate () {} // blank constructor
     ~ArchiveCreate ();
     ArchiveCreate (RepoInfo *repo, const string &name);
     void Init (RepoInfo *repo, const string &name);

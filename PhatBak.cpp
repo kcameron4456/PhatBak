@@ -3,6 +3,7 @@
 #include "LiveFile.h"
 #include "Logging.h"
 #include "Opts.h"
+#include "Utils.h"
 
 #include <stdio.h>
 
@@ -11,12 +12,14 @@ int main (int argc, const char **argv) {
         O.ParseCmdLine (argc, argv);
 
         if (O.Operation == Opts::DoCreate) {
-            Create C;
+            Create *C = new Create;
             for (auto Dir : O.FileArgs)
-                C.DoCreate (CanonizeFileName (Dir));
+                C->DoCreate (Utils::CanonizeFileName (Dir));
+            free (C);
         } else if (O.Operation == Opts::DoExtract) {
-            Extract E (O);
-            E.DoExtract (); // TBD: use file args to extract subset of archive
+            Extract *E = new Extract;
+            E->DoExtract ();
+            free (E);
         }
     }
 

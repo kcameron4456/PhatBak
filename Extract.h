@@ -6,12 +6,12 @@
 #include "ArchiveRead.h"
 
 class Extract {
-    Opts                         O;  // local options so portions can be overridden by file contents
-    RepoInfo                  Repo;  // information about current repository
-    ArchiveRead               Arch;  // information about current repository
+    RepoInfo     *Repo;
+    ArchiveRead  *Arch;
 
     public:
-    Extract (Opts &o);
+     Extract ();
+    ~Extract ();
     void DoExtract ();
 };
 

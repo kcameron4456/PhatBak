@@ -6,11 +6,13 @@
 #include <vector>
 
 Create::Create () {
-    Repo.Init (O.RepoDirName);
-    Arch.Init (&Repo, O.ArchDirName);
+    Repo = new RepoInfo   (O.RepoDirName);
+    Arch = new ArchiveCreate (Repo, O.ArchDirName);
 }
 
 Create::~Create () {
+    free (Arch);
+    free (Repo);
 }
 
 void Create::DoCreate (const string &Name) {
@@ -19,7 +21,7 @@ void Create::DoCreate (const string &Name) {
 
     // create local and archive file structures
     LiveFile LF (Name);
-    ArchFileCreate *AF = new ArchFileCreate (&Arch);
+    ArchFileCreate *AF = new ArchFileCreate (Arch);
 
     // remember info for each file
     FileList.push_back (Name);          // list of all files

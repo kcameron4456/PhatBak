@@ -6,10 +6,6 @@
 namespace fs = std::filesystem;
 
 RepoInfo::RepoInfo (const string &name) {
-    Init (name);
-}
-
-void RepoInfo::Init (const string &name) {
     Name = name;
     if (!fs::is_directory (Name))
         THROW_PBEXCEPTION_FMT ("Repo dir (%s) not found", Name.c_str());

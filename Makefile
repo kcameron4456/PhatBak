@@ -6,6 +6,7 @@ DEFTARGS = PhatBak
 #VERSION_MINOR := $(perl {my @parts = split /\./, $VERSION; $parts[1];})
 #VERSION_ARG = -DVERSION_MAJOR=$(VERSION_MAJOR) -DVERSION_MINOR=$(VERSION_MINOR)
 
+MYCFLAGS = -Wall -Werror
 ifdef DBG
     # DBG=1 creates debuggable code else fastest
     MYCFLAGS  += -g -O0 -fweb -DDBGMSG -DLOCKCHECK

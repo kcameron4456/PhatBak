@@ -11,9 +11,7 @@ class RepoInfo {
     public:
     string Name;
 
-    RepoInfo () {}  // blank constructor
     RepoInfo (const string &name);
-    void Init (const string &name);
 };
 
 #endif // REPOINFO_H

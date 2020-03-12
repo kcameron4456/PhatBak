@@ -1,13 +1,15 @@
 #include "Extract.h"
-#include "RepoInfo.h"
 
-Extract::Extract (Opts &o) {
-    O = o;
-    Repo.Init (O.RepoDirName);
-    Arch.Init (&Repo, O);
-    //Init ();
+Extract::Extract () {
+    Repo = new RepoInfo (O.RepoDirName);
+    Arch = new ArchiveRead (Repo, O);
+}
+
+Extract::~Extract () {
+    free (Arch);
+    free (Repo);
 }
 
 void Extract::DoExtract () {
-    Arch.DoExtract();
+    Arch->DoExtract();
 }
