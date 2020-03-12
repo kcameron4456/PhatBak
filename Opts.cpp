@@ -100,11 +100,11 @@ static int ParseSize (const char *SizeStr) {
     }
 
     // handle units
-    if (!strcmp (SizeStr, "K"))
+    if (!strcmp (SizeStr, "KiB"))
         Num *= 1024;
-    else if (!strcmp (SizeStr, "M"))
+    else if (!strcmp (SizeStr, "MiB"))
         Num *= 1024 * 1024;
-    else if (!strcmp (SizeStr, "G"))
+    else if (!strcmp (SizeStr, "GiB"))
         Num *= 1024 * 1024 * 1024;
     else if (!strcmp (SizeStr, "KB"))
         Num *= 1000 ;

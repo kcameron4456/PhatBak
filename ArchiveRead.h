@@ -17,7 +17,6 @@ class ArchiveRead {
     string        Name;
     string        ArchDirPath;
     RepoInfo     *Repo;
-    FILE         *ListFile;
     BlockList     FInfoBlocks;
     BlockList     ChunkBlocks;
 
