@@ -118,19 +118,23 @@ void ArchiveRead::DoExtract () {
     // parse and extract all the entries in the list
     string FileLine;
     uint64_t LineNo = 0;
+    map <string, uint64_t> ModTimes;
     while (getline (ListFile, FileLine)) {
         LineNo ++;
         // extract information about the archived file
         ArchFileRead *AF = new ArchFileRead (this, FileLine, LineNo);
 
         // create a live file object for the extracted file
-printf ("ArchiveRead::DoExtract Name=%s\n", AF->Name.c_str());
-        LiveFile *LF = new LiveFile (AF->Name, AF->Stats, AF->LinkTarget, AF->Chunks, ChunkBlocks);
+        LiveFile *LF = new LiveFile (AF->Name, AF->Stats, AF->LinkTarget, AF->Chunks, ChunkBlocks, ModTimes);
         LF->ImportInfoHeader (AF->Stats);
 
         delete LF;
         delete AF;
     }
+
+    // set modificaton times that needed to be defered
+    for (auto& [Name, Time]: ModTimes)
+        SetModTime (Name, Time);
 
     ListFile.close();
 }

@@ -45,6 +45,9 @@ namespace Utils {
 
     // create a directory - optionally create needed subdirs
     void CreateDir (const string Dir, bool CreateSubs = false);
+
+    // set modification time on a file
+    void SetModTime (const string &Name, uint64_t Time);
 }
 
 #endif // UTILS_H

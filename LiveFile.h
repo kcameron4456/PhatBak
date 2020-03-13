@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <string>
 #include <vector>
+#include <map>
 using namespace std;
 
 class LiveFile {
@@ -16,9 +17,14 @@ class LiveFile {
     struct stat Stats;      // File status info from lstat() call
     string      LinkTarget; // Target of soft link
 
-    LiveFile  (const string &name);  // for create
-    LiveFile  (const string &name        , const string &stats   , const string &ltarg,
-               vector <ChunkInfo> &Chunks, BlockList *ChunkBlocks); // for extract, etc
+    // for create
+    LiveFile  (const string &name);
+
+    // for extract, etc
+    LiveFile  (const string &name        , const string &stats   , const string &ltarg
+              ,vector <ChunkInfo> &Chunks, BlockList *ChunkBlocks
+              ,map <string, uint64_t> &ModTimes
+              );
 
     // helper functions
     inline bool IsFile   () const {return S_ISREG  (Stats.st_mode);}

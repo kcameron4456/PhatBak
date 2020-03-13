@@ -13,7 +13,8 @@ using namespace Utils;
 #include <fcntl.h>
 using namespace std;
 
-LiveFile::LiveFile (const string &name) { // for create
+// for create
+LiveFile::LiveFile (const string &name) {
     Name = name;
 
     FD = -1;
@@ -40,8 +41,11 @@ LiveFile::LiveFile (const string &name) { // for create
     }
 }
 
-LiveFile::LiveFile (const string &name        , const string &stats   , const string &ltarg,
-                    vector <ChunkInfo> &Chunks, BlockList *ChunkBlocks) { // for extract, etc
+// for extract, etc
+LiveFile::LiveFile (const string &name              , const string &stats   , const string &ltarg
+                   ,vector <ChunkInfo> &Chunks      , BlockList *ChunkBlocks
+                   ,map <string, uint64_t> &ModTimes
+                   ) {
     Name = name;
     ImportInfoHeader (stats);
     LinkTarget = ltarg;
@@ -50,7 +54,6 @@ LiveFile::LiveFile (const string &name        , const string &stats   , const st
     if (O.Operation == Opts::DoExtract) {
         Name.insert (0, O.ExtractTarget);
 
-printf ("Name=%s stats=%s\n", Name.c_str(), stats.c_str());
         // create whatever type of thing it is
         if (IsDir()) {
             CreateDir (Name, 1);
@@ -78,6 +81,27 @@ printf ("Name=%s stats=%s\n", Name.c_str(), stats.c_str());
             }
             fclose (F);
         }
+
+        // set attributes
+
+        // set directory user and group
+        int res;
+        if (IsSLink())
+            res = lchown (Name.c_str(), Stats.st_uid, Stats.st_gid);
+        else
+            res =  chown (Name.c_str(), Stats.st_uid, Stats.st_gid);
+        if (res)
+            THROW_PBEXCEPTION_IO ("Can't set dir/file (%s) owner/group to (%d/%d)", Name.c_str(), Stats.st_uid, Stats.st_gid);
+
+        // set mode
+        if (!IsSLink() && chmod (Name.c_str(), Stats.st_mode))
+            THROW_PBEXCEPTION_IO ("Can't set dir/file directory (%s) mode to %o", Name.c_str(), Stats.st_mode);
+
+        if (IsDir())
+            // dir modification time needs to be set later
+            ModTimes [Name] = mTime();
+        else
+            SetModTime (Name, mTime());
     }
 }
 

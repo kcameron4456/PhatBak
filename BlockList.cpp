@@ -158,9 +158,18 @@ FILE *BlockList::OpenBlockFile (BlockIdxType Idx, const char *mode) {
 }
 
 void BlockList::SlurpBlock (BlockIdxType Idx, string &BufStr) {
-    BufStr.resize(0);
-    char Buf [O.ChunkSize];
     FILE *F = Utils::OpenReadBin (Idx2FileName (Idx));
-    while (int BytesRead = Utils::ReadBinary (F, Buf, O.ChunkSize))
-        BufStr.append (Buf, BytesRead);
+
+    unsigned TotalSize = 0;
+
+    int BytesRead;
+    do {
+        BufStr.resize (TotalSize + O.ChunkSize);
+        BytesRead = Utils::ReadBinary (F, BufStr.data() + TotalSize, O.ChunkSize);
+        TotalSize += BytesRead;
+    } while (BytesRead);
+
+    BufStr.resize (TotalSize);
+
+    fclose (F);
 }

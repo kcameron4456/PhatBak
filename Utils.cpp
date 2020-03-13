@@ -3,6 +3,8 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -162,4 +164,15 @@ void Utils::CreateDir (const string Dir, bool CreateSubs) {
     } else {
         THROW_PBEXCEPTION_IO ("Can't create directory %s", Dir.c_str());
     }
+}
+
+void Utils::SetModTime (const string &Name, uint64_t Time) {
+    // set modification time
+    struct timespec TV[2];
+    uint64_t Ratio = 1000000000;
+    TV[0].tv_sec  = Time / Ratio;
+    TV[0].tv_nsec = Time % Ratio;
+    TV[1] = TV[0];
+    if (utimensat (AT_FDCWD, Name.c_str(), TV, AT_SYMLINK_NOFOLLOW))
+        THROW_PBEXCEPTION_IO ("Can't set mod time of %s", Name.c_str()); 
 }
