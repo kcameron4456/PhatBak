@@ -46,8 +46,10 @@ class PB_Exception {
         MakeMessage (SrcLine, SrcFile, fmt, args);
         va_end(args);
     }
-    virtual void Handle () {
+    virtual void Print () {
         PrintMessage ();
+    }
+    virtual void Handle () {
         exit (1);
     }
     PB_Exception () {
@@ -71,9 +73,12 @@ class PB_ExceptionFMT : public PB_Exception {
 class PB_ExceptionIO : public PB_Exception {
     int ErrNo;
     public:
-    void Handle () {
+    void Print () {
         errno = ErrNo;
         perror (Message.c_str());
+    }
+    void Handle () {
+        Print ();
         exit (ErrNo);
     }
     PB_ExceptionIO (int SrcLine, const char *SrcFile, const string &fmt, ...) {

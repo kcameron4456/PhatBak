@@ -41,34 +41,27 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name) : Archive (rep
     Name = name;
 
     // create archive dir
-    if (fs::exists (ArchDirPath))
-        THROW_PBEXCEPTION_FMT ("Archive dir (%s) already exists, can't overwrite", ArchDirPath.c_str());
-    error_code ec;
-    if (!fs::create_directory(ArchDirPath, ec))
-        THROW_PBEXCEPTION_IO ("Can't create Archive directory: " + ArchDirPath);
+    CreateDir (ArchDirPath);
 
     // create the log file
-    LogFile = Utils::OpenWriteStream (LogPath);
+    LogFile = OpenWriteStream (LogPath);
     LogFile << "Backup Started At: " << asctime(localtime(&O.StartTime)) << endl;
 
     // create Options file
-    fstream OptFile = Utils::OpenWriteStream (OptionsPath);
+    fstream OptFile = OpenWriteStream (OptionsPath);
     O.Print (OptFile);
     OptFile.close();
 
-    // create the file list
-    ListFile = Utils::OpenWriteStream (ListPath);
-
     // create new archive subdirs
-    for (auto SubDir : {ChunkDirPath, FinfoDirPath, ExtraDirPath}) {
-        error_code ec;
-        if (!fs::create_directory (SubDir, ec))
-            THROW_PBEXCEPTION_IO ("Can't create SubDir: " + SubDir);
-    }
+    for (auto SubDir : {ChunkDirPath, FinfoDirPath, ExtraDirPath})
+        CreateDir (SubDir);
 
     // initialize block allocators
     FInfoBlocks = new BlockList (FinfoDirPath, O);
     ChunkBlocks = new BlockList (ChunkDirPath, O);
+
+    // start the file list
+    ListFile = OpenWriteStream (ListPath);
 }
 
 ArchiveCreate::~ArchiveCreate () {
@@ -87,7 +80,7 @@ ArchiveCreate::~ArchiveCreate () {
 
 void ArchiveRead::ParseOptions () {
     // extract options from the archive file
-    fstream OptsFile = Utils::OpenReadStream (OptionsPath);
+    fstream OptsFile = OpenReadStream (OptionsPath);
     string OptLine;
     while (getline (OptsFile, OptLine)) {
         // split into name/value pairs

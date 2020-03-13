@@ -3,6 +3,8 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 vector <string> Utils::SplitStr (string Src, const string &Pat) {
     vector <string> Toks;
@@ -94,4 +96,31 @@ fstream Utils::OpenWriteStream (const string &Name) {
     if (Strm.fail())
         THROW_PBEXCEPTION_IO ("Can't open %s for write", Name.c_str());
     return Strm;
+}
+
+void Utils::CreateDir (const string Dir, bool CreateSubs) {
+    // we're finished if the directory already exists
+    if (Dir == "" || fs::is_directory (Dir))
+        return;
+
+    // abort if it's something other than a directory
+    if (fs::exists (Dir))
+        THROW_PBEXCEPTION_IO ("Utils::CreateDir %s is not a directory", Dir.c_str());
+
+    // try to create the directory
+    error_code ec;
+    if (fs::create_directory(Dir, ec))
+        return;
+
+    // on fail, see if we want to create a subdir
+    if (CreateSubs && ec == errc::no_such_file_or_directory) {
+        // try to create the previous directory
+        auto SubDirs = SplitStr (Dir, "/");
+        auto TopDir = SubDirs.back();
+        SubDirs.pop_back ();
+        CreateDir (JoinStrs (SubDirs, "/"), 1);
+        CreateDir (Dir);
+    } else {
+        THROW_PBEXCEPTION_IO ("Can't create directory %s", Dir.c_str());
+    }
 }

@@ -25,6 +25,9 @@ namespace Utils {
 
     // open file stream for output
     fstream OpenWriteStream (const string &Name);
+
+    // create a directory - optionally create needed subdirs
+    void CreateDir (const string Dir, bool CreateSubs = false);
 }
 
 #endif // UTILS_H
