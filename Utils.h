@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <stdio.h>
 using namespace std;
 
 namespace Utils {
@@ -23,8 +24,17 @@ namespace Utils {
     // open file stream for input
     fstream OpenReadStream (const string &Name);
 
+    // open file stream for binary input
+    FILE * OpenReadBin (const string &Name);
+
     // open file stream for output
     fstream OpenWriteStream (const string &Name);
+
+    // read a line from a file stream, optionally die on eof
+    string ReadLine (fstream &Stream, bool DieOnEOF = 1);
+
+    // read unformatted data into byte buffer
+    int ReadBinary (FILE *F, char *Buf, int BufSize);
 
     // create a directory - optionally create needed subdirs
     void CreateDir (const string Dir, bool CreateSubs = false);

@@ -50,6 +50,7 @@ class PB_Exception {
         PrintMessage ();
     }
     virtual void Handle () {
+        Print();
         exit (1);
     }
     PB_Exception () {

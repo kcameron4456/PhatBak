@@ -128,7 +128,9 @@ vector <string> BlockList::GetSubDirs (BlockIdxType Idx) {
 
 // convert a block number to a directory path
 string BlockList::Idx2DirString (BlockIdxType Idx) {
-    return TopDir + "/" + Utils::JoinStrs (GetSubDirs (Idx), "/");
+    vector <string> Dirs = GetSubDirs (Idx);
+    Dirs.insert (Dirs.begin(), 1, TopDir);
+    return Utils::JoinStrs (Dirs, "/");
 }
 
 // convert a block number to a path relative to a top dir
@@ -155,6 +157,10 @@ FILE *BlockList::OpenBlockFile (BlockIdxType Idx, const char *mode) {
     return BlkFile;
 }
 
-fstream BlockList::OpenReadStream (BlockIdxType Idx) {
-    return Utils::OpenReadStream (Idx2FileName(Idx));
+void BlockList::SlurpBlock (BlockIdxType Idx, string &BufStr) {
+    BufStr.resize(0);
+    char Buf [O.ChunkSize];
+    FILE *F = Utils::OpenReadBin (Idx2FileName (Idx));
+    while (int BytesRead = Utils::ReadBinary (F, Buf, O.ChunkSize))
+        BufStr.append (Buf, BytesRead);
 }

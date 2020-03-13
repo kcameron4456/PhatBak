@@ -17,7 +17,11 @@ class ChunkInfo {
     char         Comp;
     BlockIdxType Idx;
     string       Hash;
-    ChunkInfo (char comp, BlockIdxType idx, const string& hash);
+    ChunkInfo (char comp, BlockIdxType idx, const string& hash) {
+        Comp = comp;
+        Idx  = Idx;
+        Hash = hash;
+    }
     ChunkInfo (const string &finfoline);
 };
 
@@ -70,6 +74,7 @@ class ArchFile {
     string             InfoBlkHash;
     mutex              Mtx;
     string             Stats;
+    string             LinkTarget;
     vector <ChunkInfo> DataChnks;
 
      ArchFile (Archive *arch);
@@ -82,7 +87,8 @@ class ArchFileRead : public ArchFile {
      ArchFileRead (ArchiveRead *arch, const string &ListEntry, uint64_t LineNo);
     ~ArchFileRead ();
 
-    void DoExtract ();
+    void DoExtract  ();
+    void SlurpFinfo (BlockIdxType Idx, string &FInfoPacked);
 };
 
 class ArchFileCreate {

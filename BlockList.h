@@ -41,7 +41,8 @@ class BlockList {
     string          Idx2DirString  (BlockIdxType Idx);
     string          Idx2FileName   (BlockIdxType Idx);
     FILE           *OpenBlockFile  (BlockIdxType Idx, const char *mode);
-    fstream        OpenReadStream (BlockIdxType Idx);
+    fstream        OpenReadStream  (BlockIdxType Idx);
+    void           SlurpBlock      (BlockIdxType Idx, string &BufStr);
 };
 
 #endif // BLOCKLIST_H

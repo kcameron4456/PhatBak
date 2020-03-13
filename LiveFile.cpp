@@ -52,8 +52,8 @@ vector <string> LiveFile::GetSubs () {
 
 string LiveFile::MakeInfoHeader () const {
     stringstream res;
-    res << "dev:"   << hex << Stats.st_dev  << " ";
-    res << "inode:" << hex << INode()       << " ";
+    //res << "dev:"   << hex << Stats.st_dev  << " ";  Not Needed?
+    //res << "inode:" << hex << INode()       << " ";
     res << "mode:"  << hex << Stats.st_mode << " ";
     res << "uid:"   << hex << Stats.st_uid  << " ";
     res << "gid:"   << hex << Stats.st_gid  << " ";

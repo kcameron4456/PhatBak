@@ -91,11 +91,35 @@ fstream Utils::OpenReadStream (const string &Name) {
     return Strm;
 }
 
+FILE* Utils::OpenReadBin (const string &Name) {
+    FILE* F;
+    if (!(F = fopen (Name.c_str(), "rb")))
+        THROW_PBEXCEPTION_IO ("Can't open %s for read", Name.c_str());
+    return F;
+}
+
 fstream Utils::OpenWriteStream (const string &Name) {
     fstream Strm (Name.c_str(), fstream::out);
     if (Strm.fail())
         THROW_PBEXCEPTION_IO ("Can't open %s for write", Name.c_str());
     return Strm;
+}
+
+string Utils::ReadLine (fstream &Stream, bool DieOnEOF) {
+    string Line;
+    getline (Stream, Line);
+    if (DieOnEOF && Stream.eof())
+        THROW_PBEXCEPTION_IO ("Unexpected end of file");
+    if (Stream.fail())
+        THROW_PBEXCEPTION_IO ("ReadLine failed");
+    return Line;
+}
+
+int Utils::ReadBinary (FILE *F, char *Buf, int BufSize) {
+    int BytesRead;
+    if ((BytesRead = fread (Buf, 1, BufSize, F)) < 0)
+        THROW_PBEXCEPTION_IO ("Read failed");
+    return BytesRead;
 }
 
 void Utils::CreateDir (const string Dir, bool CreateSubs) {

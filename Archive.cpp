@@ -120,7 +120,8 @@ void ArchiveRead::DoExtract () {
     uint64_t LineNo = 0;
     while (getline (ListFile, FileLine)) {
         LineNo ++;
-        //ArchFileRead *AF = new ArchFileRead (this, FileLine, LineNo);
+        ArchFileRead *AF = new ArchFileRead (this, FileLine, LineNo);
+        delete AF;
     }
 
     ListFile.close();
@@ -149,10 +150,48 @@ ArchFileRead::ArchFileRead (ArchiveRead *arch, const string &ListEntry, uint64_t
     InfoBlkComp = RHSToks[1][0];
     InfoBlkHash = RHSToks[2];
 
-    // extract information from 
-    auto FInfoStrm = Arch->FInfoBlocks->OpenReadStream (InfoBlkNum);
+    // extract information from the FInfo block
+    string FInfoPacked;
+    Arch->FInfoBlocks->SlurpBlock (InfoBlkNum, FInfoPacked);
+printf ("finfo slurp size = %lu\n", FInfoPacked.size());
 
-    FInfoStrm.close();
+    // TBD: handle decompress
+
+    // parse finfo
+    vector <string> FInfoLines = SplitStr (FInfoPacked, "\n");
+    for (auto Line : FInfoLines) {
+        if (Line.size() < 3 || Line[1] != '-')
+            THROW_PBEXCEPTION_FMT ("Illegal FInfo format: %s", Line.c_str());
+        char RecType = Line[0];
+        Line.erase (0,2);
+printf ("%s\n", Line.c_str());
+        switch (RecType) {
+            case 'H' : Stats = Line; break;
+                // {   vector <string> Fields = SplitStr (Line, " ");
+                //    for (auto Field : Fields) {
+                //        vector <string> Two = SplitStr (Field, ":");
+                //        if (Two.size() != 2)
+                //            THROW_PBEXCEPTION_FMT ("Illegal header field : %s", Field.c_str());
+                //        string &Name = Two[0];
+                //        string &Val  = Two[1];
+                //        if (Name == "mode") 
+
+                //    }
+                //    break;
+                //}
+            case 'L' : LinkTarget = Line; break;
+
+            case 'U' :
+            case 'C' : {
+                vector <string> Parts = SplitStr (Line, " ");
+                DataChnks.emplace_back (RecType, stoull (Parts[0].c_str()), Parts[1]);
+                break;
+                }
+
+            default :
+                THROW_PBEXCEPTION_FMT ("Unrecognized FInfo record type '%c'", RecType);
+        };
+    }
 }
 
 ArchFileRead::~ArchFileRead () {
@@ -174,7 +213,7 @@ void ArchFileCreate::Create (LiveFile &LF) {
     Stats = LF.MakeInfoHeader ();
 
     // Create Finfo file contents
-    string FInfo = Stats + "\n";
+    string FInfo = "H-" + Stats + "\n";
 
     // For files, create chunks and FInfo entries
     if (LF.IsFile()) {
@@ -194,11 +233,11 @@ void ArchFileCreate::Create (LiveFile &LF) {
             string HashHex = Hasher.GetHash();
 
             // add chunk to finfo
-            FInfo += "U: " + to_string (ChnkIdx) + " " + HashHex + "\n";
+            FInfo += "U-" + to_string (ChnkIdx) + " " + HashHex + "\n";
         }
         LF.Close();
     } else if (LF.IsSLink()) {
-            FInfo += "L: " + LF.Target + "\n";
+        FInfo += "L-" + LF.Target + "\n";
     }
 
     // Create the file info block in the archive
