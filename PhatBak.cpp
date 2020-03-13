@@ -15,11 +15,11 @@ int main (int argc, const char **argv) {
             Create *C = new Create;
             for (auto Dir : O.FileArgs)
                 C->DoCreate (Utils::CanonizeFileName (Dir));
-            free (C);
+            delete C;
         } else if (O.Operation == Opts::DoExtract) {
             Extract *E = new Extract;
             E->DoExtract ();
-            free (E);
+            delete E;
         }
     }
 

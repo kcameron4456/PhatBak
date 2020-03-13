@@ -81,3 +81,17 @@ string Utils::JoinStrs (const vector <string> &Parts, const string &Sep) {
     }
     return Joined;
 }
+
+fstream Utils::OpenReadStream (const string &Name) {
+    fstream Strm (Name.c_str(), fstream::in);
+    if (Strm.fail())
+        THROW_PBEXCEPTION_IO ("Can't open %s for read", Name.c_str());
+    return Strm;
+}
+
+fstream Utils::OpenWriteStream (const string &Name) {
+    fstream Strm (Name.c_str(), fstream::out);
+    if (Strm.fail())
+        THROW_PBEXCEPTION_IO ("Can't open %s for write", Name.c_str());
+    return Strm;
+}

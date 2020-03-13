@@ -11,8 +11,8 @@ Create::Create () {
 }
 
 Create::~Create () {
-    free (Arch);
-    free (Repo);
+    delete Arch;
+    delete Repo;
 }
 
 void Create::DoCreate (const string &Name) {

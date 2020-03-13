@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <fstream>
 using namespace std;
 
 namespace Utils {
@@ -18,6 +19,12 @@ namespace Utils {
 
     // join multiple strings into one with optional separater
     string JoinStrs (const vector <string> &Parts, const string &Sep = "");
+
+    // open file stream for input
+    fstream OpenReadStream (const string &Name);
+
+    // open file stream for output
+    fstream OpenWriteStream (const string &Name);
 }
 
 #endif // UTILS_H

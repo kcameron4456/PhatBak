@@ -3,7 +3,7 @@
 
 #include "Opts.h"
 #include "RepoInfo.h"
-#include "ArchiveRead.h"
+#include "Archive.h"
 
 class Extract {
     RepoInfo     *Repo;

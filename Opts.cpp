@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sstream>
 using namespace std;
 
 // global options declaration
@@ -251,16 +252,26 @@ Opts::Opts () {
     StartTime = time(NULL);
 }
 
-void Opts::Print (FILE *F) {
-    fprintf (F, "Options:\n");
-    fprintf (F, "   CmdLine         = %s\n", CmdLine.c_str());
-    fprintf (F, "   Operation       = %s\n", OpText());
-    fprintf (F, "   RepoDirName     = %s\n", RepoDirName.c_str());
-    fprintf (F, "   ArchDirName     = %s\n", ArchDirName.c_str());
-    fprintf (F, "   ShowFiles       = %d\n", ShowFiles);
-    fprintf (F, "   FileArgs        = %s\n", Utils::JoinStrs (FileArgs, " ").c_str());
-    fprintf (F, "   BlockNumDigits  = %d\n", BlockNumDigits);
-    fprintf (F, "   BlockNumModulus = %d\n", BlockNumModulus);
-    fprintf (F, "   ChunkSize       = %d\n", ChunkSize);
-    fprintf (F, "   HashType        = %s\n", HashNames[HashType]);
+void Opts::Print (fstream &F) {
+    F << OptsString ();
+}
+
+void Opts::Print (ostream &F) {
+    F << OptsString ();
+}
+
+string Opts::OptsString () {
+    stringstream F;
+    F << "Options:\n";
+    F << "   CmdLine         = " << CmdLine                         << endl;
+    F << "   Operation       = " << OpText()                        << endl;
+    F << "   RepoDirName     = " << RepoDirName                     << endl;
+    F << "   ArchDirName     = " << ArchDirName                     << endl;
+    F << "   ShowFiles       = " << ShowFiles                       << endl;
+    F << "   FileArgs        = " << Utils::JoinStrs (FileArgs, " ") << endl;
+    F << "   BlockNumDigits  = " << BlockNumDigits                  << endl;
+    F << "   BlockNumModulus = " << BlockNumModulus                 << endl;
+    F << "   ChunkSize       = " << ChunkSize                       << endl;
+    F << "   HashType        = " << HashNames[HashType]             << endl;
+    return F.str();
 }

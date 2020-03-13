@@ -155,10 +155,6 @@ FILE *BlockList::OpenBlockFile (BlockIdxType Idx, const char *mode) {
     return BlkFile;
 }
 
-ifstream BlockList::OpenReadStream (BlockIdxType Idx) {
-    string Name = Idx2FileName(Idx);
-    ifstream Strm (Name.c_str(), fstream::in);
-    if (Strm.fail())
-        THROW_PBEXCEPTION_IO ("Can't open %s for read", Name.c_str());
-    return Strm;
+fstream BlockList::OpenReadStream (BlockIdxType Idx) {
+    return Utils::OpenReadStream (Idx2FileName(Idx));
 }

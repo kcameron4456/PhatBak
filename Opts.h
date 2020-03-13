@@ -8,6 +8,8 @@
 #include <list>
 #include <stdio.h>
 #include <ctime>
+#include <fstream>
+#include <iostream>
 using namespace std;
 
 // Structure to hold option values
@@ -46,7 +48,9 @@ class Opts {
                                         "Illegal"   ;
     }
 
-    void Print (FILE *F = stderr);
+    void   Print      (fstream &F);
+    void   Print      (ostream &F = cout);
+    string OptsString ();
 } ;
 
 // global options pointer

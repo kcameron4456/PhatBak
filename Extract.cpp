@@ -2,12 +2,12 @@
 
 Extract::Extract () {
     Repo = new RepoInfo (O.RepoDirName);
-    Arch = new ArchiveRead (Repo, O);
+    Arch = new ArchiveRead (Repo, O.ArchDirName, O);
 }
 
 Extract::~Extract () {
-    free (Arch);
-    free (Repo);
+    delete Arch;
+    delete Repo;
 }
 
 void Extract::DoExtract () {

@@ -28,3 +28,4 @@ clean:
 	rm -f *.o
 	rm -f tartar ttdump
         rm -rf .makepp
+        rm -f PhatBak UtilsTest
