@@ -207,6 +207,11 @@ ArchFileRead::ArchFileRead (ArchiveRead *arch, const string &ListEntry, uint64_t
     string FInfoPacked;
     Arch->FInfoBlocks->SlurpBlock (InfoBlkNum, FInfoPacked);
 
+    // check hash
+    string FInfoHashFound = HashStr (((ArchiveRead*)Arch)->O.HashType, FInfoPacked);
+    if (FInfoHashFound != InfoBlkHash)
+        THROW_PBEXCEPTION_FMT ("Hash mismatch on FInfo block #%llu", InfoBlkNum);
+
     // TBD: handle decompress
 
     // parse finfo

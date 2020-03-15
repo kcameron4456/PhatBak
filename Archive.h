@@ -34,7 +34,6 @@ class Archive {
 };
 
 class ArchiveRead : public Archive {
-    Opts                   O;
     map <uint64_t, string> InfoBlockIds;
     mutex                  InfoBlockIdsMtx;
     map <string, uint64_t> ModTimes;
@@ -43,6 +42,8 @@ class ArchiveRead : public Archive {
     void ParseOptions();
 
     public:
+    Opts                   O;
+
      ArchiveRead (RepoInfo *repo, const string &name, Opts &o);
     ~ArchiveRead ();
     void DoExtract();
