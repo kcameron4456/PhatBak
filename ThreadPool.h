@@ -28,6 +28,7 @@ class JobCtrl {
         CreateFile = 1, // create archive file
         ExtractFile   , // extract file from archive
         CompressChunk , // compress one data chunk and write it to the archive
+        ExtractChunk  , // extract chunk info into restored file
     } JobType;
 
     struct {
@@ -44,6 +45,14 @@ class JobCtrl {
         string                 Chunk;
         HashAndCompressReturn *HACR;
     } CompressChunkInfo;
+    struct {
+        ChunkInfo   *Chunk;
+        BlockList   *ChunkBlocks;
+        BlockIdxType BlockIdx;
+        FILE        *F;
+        BusyLock    *Lock;
+        BusyLock    *PrevLock;
+    } ExtractChunkInfo;
 
     JobCtrl (int idx) {
         Idx = idx;

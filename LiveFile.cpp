@@ -3,6 +3,7 @@
 #include "Opts.h"
 #include "Utils.h"
 #include "Comp.h"
+#include "ThreadPool.h"
 using namespace Utils;
 
 #include <string.h>
@@ -40,6 +41,30 @@ LiveFile::LiveFile (const string &name) {
     } else {
         THROW_PBEXCEPTION ("File %s is an unsupported type", Name.c_str());
     }
+}
+
+void ExtractChunkJob (ChunkInfo *Chunk, BlockList *ChunkBlocks, BlockIdxType BlockIdx, FILE *F, BusyLock *Lock, BusyLock *PrevLock) {
+    string ChunkData;
+    ChunkBlocks->SlurpBlock (BlockIdx, ChunkData);
+
+    // handle decompress
+    string *SelData = &ChunkData;
+    string DeCompressed;
+    if (Chunk->CompType != CompType_NONE) {
+        Comp::DeCompress (Chunk->CompType, ChunkData, DeCompressed);
+        SelData = &DeCompressed;
+    }
+
+    string ChunkDataHash = HashStr (Chunk->HashType, *SelData);
+    if (ChunkDataHash != Chunk->Hash)
+        THROW_PBEXCEPTION_FMT ("Hash mismatch on data chunk #%llu", Chunk->Idx);
+
+    if (PrevLock)
+        PrevLock->WaitIdle();
+
+    WriteBinary (F, *SelData);
+
+    Lock->PostIdle();
 }
 
 // for extract, etc
@@ -83,25 +108,41 @@ LiveFile::LiveFile (const string &name              , const string &stats   , co
         } else if (IsSocket()) {
             // not yet - might be complicated
         } else if (IsFile()) {
-            FILE *F = OpenWriteBin (Name);
-            for (auto Chunk: Chunks) {
-                string ChunkData;
-                ChunkBlocks->SlurpBlock (Chunk.Idx, ChunkData);
+            vector <BusyLock *> Locks;
+            BusyLock *PrevLock = NULL;
 
-                // handle decompress
-                string *SelData = &ChunkData;
-                string DeCompressed;
-                if (Chunk.CompType != CompType_NONE) {
-                    Comp::DeCompress (Chunk.CompType, ChunkData, DeCompressed);
-                    SelData = &DeCompressed;
+            FILE *F = OpenWriteBin (Name);
+            for (auto ChunkItr = Chunks.begin(); ChunkItr != Chunks.end(); ChunkItr++) {
+                ChunkInfo &Chunk = *ChunkItr;
+
+                BusyLock *Lock = new BusyLock(1);
+                Locks.push_back(Lock);
+
+                // get help on all but the final chunk
+                if (O.NumThreads && ChunkItr != (Chunks.end()-1)) {
+                    JobCtrl *Thr = ThreadPool.AllocThread();
+                    Thr->JobType                      = JobCtrl::ExtractChunk;
+                    Thr->ExtractChunkInfo.Chunk       = &Chunk;
+                    Thr->ExtractChunkInfo.ChunkBlocks = ChunkBlocks;
+                    Thr->ExtractChunkInfo.BlockIdx    = Chunk.Idx;
+                    Thr->ExtractChunkInfo.F           = F;
+                    Thr->ExtractChunkInfo.Lock        = Lock;
+                    Thr->ExtractChunkInfo.PrevLock    = PrevLock;
+                    Thr->Go();
+                } else {
+                    ExtractChunkJob (&Chunk, ChunkBlocks, Chunk.Idx, F, Lock, PrevLock);
                 }
 
-                string ChunkDataHash = HashStr (Chunk.HashType, *SelData);
-                if (ChunkDataHash != Chunk.Hash)
-                    THROW_PBEXCEPTION_FMT ("Hash mismatch on data chunk #%llu", Chunk.Idx);
 
-                WriteBinary (F, *SelData);
+                PrevLock = Lock;
             }
+
+            // wait for helpers to finish
+            for (auto Lock : Locks) {
+                Lock->WaitIdle();
+                delete Lock;
+            }
+
             fclose (F);
         }
 

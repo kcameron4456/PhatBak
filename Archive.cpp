@@ -313,7 +313,7 @@ void ArchFileCreate::CreateJob (bool Keep) {
         string Chunk;
         LF->OpenRead();
         while (LF->ReadChunk (Chunk)) {
-            HashAndCompressReturn *Return = new (HashAndCompressReturn);
+            HashAndCompressReturn *Return = new HashAndCompressReturn;
             Returns.push_back (Return);
 
             // try to allocate a thread

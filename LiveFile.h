@@ -3,12 +3,15 @@
 
 #include "Types.h"
 #include "BlockList.h"
+#include "BusyLock.h"
 
 #include <sys/stat.h>
 #include <string>
 #include <vector>
 #include <map>
 using namespace std;
+
+void ExtractChunkJob (ChunkInfo *Chunk, BlockList *ChunkBlocks, BlockIdxType BlockIdx, FILE *F, BusyLock *Lock, BusyLock *PrevLock);
 
 class LiveFile {
     public:

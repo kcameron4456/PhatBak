@@ -43,6 +43,16 @@ void BackGroundWorker (JobCtrl *Job) {
                        );
                     Job->CompressChunkInfo.Chunk = ""; // release potentially large buffer
                     break;
+                case JobCtrl::ExtractChunk :
+                    ExtractChunkJob (
+                        Job->ExtractChunkInfo.Chunk,
+                        Job->ExtractChunkInfo.ChunkBlocks,
+                        Job->ExtractChunkInfo.BlockIdx,
+                        Job->ExtractChunkInfo.F,
+                        Job->ExtractChunkInfo.Lock,
+                        Job->ExtractChunkInfo.PrevLock
+                    );
+                    break;
                 default:
                     THROW_PBEXCEPTION ("Unrecognized job type: %d", Job->JobType);
             }
