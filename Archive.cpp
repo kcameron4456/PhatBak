@@ -291,14 +291,9 @@ void ArchFileCreate::HashAndCompressJob (string &Chunk, HashAndCompressReturn *H
             HACR->CompFlag =  CompFlagComp;
         }
     }
-    string CopiedSelChunk = *SelChunk;
-
-    // get a new chunk block index
-    auto BlockIdx = Arch->ChunkBlocks->Alloc();
-    HACR->BlockIdx = BlockIdx;
 
     // write the chunk to archive
-    Arch->ChunkBlocks->SpitBlock (BlockIdx, CopiedSelChunk);
+    HACR->BlockIdx = Arch->ChunkBlocks->SpitNewBlock (*SelChunk);
 
     // notify the caller that hash and compress are complete
     HACR->BL.PostBusy();
