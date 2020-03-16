@@ -6,7 +6,6 @@ using namespace std;
 
 // these are mostly put here to break cicular header dependencies
 
-
 typedef enum {
     CompType_NONE = 0,
     CompType_ZTSD,
@@ -14,6 +13,7 @@ typedef enum {
 } eCompType;
 
 #include "Hash.h"
+#include "Comp.h"
 
 typedef unsigned long long BlockIdxType;
 

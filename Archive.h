@@ -6,12 +6,24 @@
 #include "BlockList.h"
 #include "Opts.h"
 #include "Types.h"
+#include "BusyLock.h"
 
 #include <string>
 #include <vector>
 #include <stdio.h>
 #include <mutex>
+#include <atomic>
 using namespace std;
+
+// returns info from thread to archfilecreate
+class HashAndCompressReturn {
+    public:
+
+    BusyLock     BL;
+    char         CompFlag;
+    BlockIdxType BlockIdx;
+    string       HashHex;
+};
 
 class Archive {
     public:
@@ -97,6 +109,7 @@ class ArchFileCreate : public ArchFile {
     void Create     (bool Keep);            // add file to archive
     void CreateJob  (bool Keep);            // add file to archive (runs within thread)
     void CreateLink (ArchFileCreate *Prev); // link to previously archived file
+    void HashAndCompressJob (string &Chunk, HashAndCompressReturn *HACR);
 };
 
 #endif // ARCHIVE_H

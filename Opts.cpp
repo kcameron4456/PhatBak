@@ -208,7 +208,7 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PARSE_MinusFlg ("-v"                ,, ShowFiles  , 1,)
         PARSE_MinusFlg ("-D"                ,, ShowFiles=ArchDiag, 1, )
         PARSE_MinusVal ("-T"                ,"%d", &NumThreads,)
-        PARSE_MinusStr ("--Comp"            , arg, CompType = Comp::CompNameToEnum(arg);)
+        PARSE_MinusStr ("--CompType"        , arg, CompType = Comp::CompNameToEnum(arg);)
         PARSE_MinusVal ("--CompLevel"       ,"%d", &CompLevel,)
         PARSE_MinusStr ("--HashType"        , arg, HashType = HashNameToEnum(arg);)
         PARSE_MinusVal ("--ChunkSize"       ,"%d", &ChunkSize,)

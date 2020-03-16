@@ -159,9 +159,9 @@ void ArchiveRead::DoExtract () {
         if (O.NumThreads) {
             JobCtrl *Job = ThreadPool.AllocThread();
             Job->JobType = JobCtrl::ExtractFile;
-            Job->JobInfo.ExtractFile.Arch     = this;
-            Job->JobInfo.ExtractFile.FileLine = FileLine;
-            Job->JobInfo.ExtractFile.LineNo   = LineNo;
+            Job->ExtractFileInfo.Arch     = this;
+            Job->ExtractFileInfo.FileLine = FileLine;
+            Job->ExtractFileInfo.LineNo   = LineNo;
             Job->Go();
         } else {
             DoExtractJob (FileLine, LineNo);
@@ -274,6 +274,36 @@ ArchFileCreate::ArchFileCreate (ArchiveCreate *arch, LiveFile *lf) : ArchFile (a
     Mtx.lock();
 }
 
+void ArchFileCreate::HashAndCompressJob (string &Chunk, HashAndCompressReturn *HACR) {
+    // compute hash
+    Hash Hasher (O.HashType);
+    HACR->HashHex = Hasher.HashStr(Chunk);
+
+    // compress the chunk
+    // if compression doesn't help, keep it uncompressed
+    string *SelChunk = &Chunk;
+    HACR->CompFlag = CompFlagUnComp;
+    string Compressed;
+    if (O.CompType != CompType_NONE) {
+        Comp::Compress (Chunk, Compressed);
+        if (Compressed.size() < Chunk.size()) {
+            SelChunk       = &Compressed;
+            HACR->CompFlag =  CompFlagComp;
+        }
+    }
+    string CopiedSelChunk = *SelChunk;
+
+    // get a new chunk block index
+    auto BlockIdx = Arch->ChunkBlocks->Alloc();
+    HACR->BlockIdx = BlockIdx;
+
+    // write the chunk to archive
+    Arch->ChunkBlocks->SpitBlock (BlockIdx, CopiedSelChunk);
+
+    // notify the caller that hash and compress are complete
+    HACR->BL.PostBusy();
+}
+
 void ArchFileCreate::CreateJob (bool Keep) {
     // get string version of stats for FInfo
     Stats = LF->MakeInfoHeader ();
@@ -283,32 +313,39 @@ void ArchFileCreate::CreateJob (bool Keep) {
 
     // For files, create chunks and FInfo entries
     if (LF->IsFile()) {
+        vector <HashAndCompressReturn *> Returns;
+
         string Chunk;
         LF->OpenRead();
         while (LF->ReadChunk (Chunk)) {
-            // compute hash
-            Hash Hasher (O.HashType);
-            string HashHex = Hasher.HashStr(Chunk);
+            HashAndCompressReturn *Return = new (HashAndCompressReturn);
+            Returns.push_back (Return);
 
-            // compress the chunk
-            // if compression doesn't help, keep it uncompressed
-            string *SelChunk = &Chunk;
-            char    CompC    = CompFlagUnComp;
-            string  Compressed;
-            if (O.CompType != CompType_NONE) {
-                Comp::Compress (Chunk, Compressed);
-                if (Compressed.size() < Chunk.size()) {
-                    SelChunk = &Compressed;
-                    CompC    = CompFlagComp;
-                }
+            // try to allocate a thread
+            JobCtrl *Thr = ThreadPool.AllocThread(0);
+            if (Thr) {
+                // get help
+                Thr->JobType                 = JobCtrl::CompressChunk;
+                Thr->CompressChunkInfo.AF    = this;
+                Thr->CompressChunkInfo.Chunk = Chunk;
+                Thr->CompressChunkInfo.HACR  = Return;
+                Thr->Go();
+            } else {
+                // do it ourselves
+                HashAndCompressJob (Chunk, Return);
             }
-
-            BlockIdxType ChnkIdx = Arch->ChunkBlocks->SpitNewBlock (*SelChunk);
-
-            // add chunk to finfo
-            FInfo += string("") + CompC + "-" + to_string (ChnkIdx) + " " + HashHex + "\n";
         }
         LF->Close();
+
+        for (auto Return : Returns) {
+            // wait for the job to complete
+            Return->BL.WaitBusy();
+
+            // add chunk to finfo
+            FInfo += string("") + Return->CompFlag + "-" + to_string (Return->BlockIdx) + " " + Return->HashHex + "\n";
+
+            delete Return;
+        }
     } else if (LF->IsSLink()) {
         FInfo += "L-" + LF->LinkTarget + "\n";
     }
@@ -351,8 +388,8 @@ void ArchFileCreate::Create (bool Keep) {
     if (O.NumThreads) {
         JobCtrl *Job = ThreadPool.AllocThread();
         Job->JobType = JobCtrl::CreateFile;
-        Job->JobInfo.CreateFile.AF   = this;
-        Job->JobInfo.CreateFile.Keep = Keep;
+        Job->CreateFileInfo.AF   = this;
+        Job->CreateFileInfo.Keep = Keep;
         Job->Go();
     } else {
         CreateJob (Keep);

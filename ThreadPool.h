@@ -3,57 +3,13 @@
 
 #include "Logging.h"
 #include "Archive.h"
+#include "BusyLock.h"
 
 #include <queue>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 using namespace std;
-
-extern volatile int StopThreads;
-
-class BusyLock {
-    bool               Busy;
-    mutex              Mtx;
-    condition_variable CV;
-
-    public:
-    BusyLock () {
-        Busy = false;
-    }
-    void WaitIdle () {
-        unique_lock<mutex> lock(Mtx);
-        CV.wait (lock, [this]{return !Busy || StopThreads;});
-    }
-    void WaitIdleAndPost () {
-        unique_lock<mutex> lock(Mtx);
-        CV.wait (lock, [this]{return !Busy || StopThreads;});
-        Busy = 1;
-    }
-    void WaitBusy () {
-        unique_lock<mutex> lock(Mtx);
-        CV.wait (lock, [this]{return Busy || StopThreads;});
-    }
-    void WaitBusyAndPost () {
-        unique_lock<mutex> lock(Mtx);
-        CV.wait (lock, [this]{return Busy || StopThreads;});
-        Busy = 0;
-    }
-    void Notify () {
-        CV.notify_all();
-    }
-    void Post (bool B) {
-        unique_lock<mutex> lock(Mtx);
-        Busy = B;
-        Notify ();
-    }
-    void PostIdle () {
-        Post (0);
-    }
-    void PostBusy () {
-        Post (1);
-    }
-};
 
 // class to contain info needed to start a job on a waiting thread
 // one of these is owned by each worker
@@ -71,21 +27,23 @@ class JobCtrl {
     enum {
         CreateFile = 1, // create archive file
         ExtractFile   , // extract file from archive
+        CompressChunk , // compress one data chunk and write it to the archive
     } JobType;
 
-    union JI {
-        struct {
-            ArchFileCreate *AF;
-            bool            Keep;
-        } CreateFile;
-        struct {
-            ArchiveRead    *Arch;
-            string          FileLine;
-            uint64_t        LineNo;
-        } ExtractFile;
-         JI () {}
-        ~JI () {}
-    } JobInfo;
+    struct {
+        ArchFileCreate *AF;
+        bool            Keep;
+    } CreateFileInfo;
+    struct {
+        ArchiveRead    *Arch;
+        string          FileLine;
+        uint64_t        LineNo;
+    } ExtractFileInfo;
+    struct {
+        ArchFileCreate        *AF;
+        string                 Chunk;
+        HashAndCompressReturn *HACR;
+    } CompressChunkInfo;
 
     JobCtrl (int idx) {
         Idx = idx;
