@@ -15,4 +15,10 @@ RepoInfo::RepoInfo (const string &name) {
     if (!fs::exists (RepoId))
         // TBD: optionally create repo if it doesn't exist
         THROW_PBEXCEPTION_FMT ("Repo Indentifier (%s) not found", RepoId.c_str());
+
+    // check for previous reference archive 
+    LatestArchName = "";
+    fs::path LatestArchPath = Name + "/LatestArchive";
+    if (fs::is_symlink (LatestArchPath))
+        LatestArchName = read_symlink (LatestArchPath);
 }

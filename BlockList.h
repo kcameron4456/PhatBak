@@ -15,6 +15,7 @@ using namespace std;
 class BlockRangeTuple {
     public:
     i64 min, max;
+    BlockRangeTuple () {}
     BlockRangeTuple (i64 mn, i64 mx) {
         min = mn;
         max = mx;
@@ -23,7 +24,7 @@ class BlockRangeTuple {
 
 class BlockList {
     string TopDir;
-    Opts   O;
+    const  Opts &O;
     vector <BlockRangeTuple> Ranges;
     mutex  Mtx;
 
@@ -34,9 +35,10 @@ class BlockList {
      BlockList (const string &topdir, const Opts &o);
     ~BlockList ();
 
-    i64 Alloc           ();
+    i64     Alloc           ();
     void    Free            (i64 Idx);
     void    MarkAllocated   (i64 Idx);
+    i64     CountAllocated  ();
     vecstr  GetSubDirs      (i64 Idx);
     string  Idx2DirString   (i64 Idx);
     string  Idx2FileName    (i64 Idx);

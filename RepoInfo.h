@@ -10,6 +10,7 @@ using namespace std;
 class RepoInfo {
     public:
     string Name;
+    string LatestArchName;
 
     RepoInfo (const string &name);
 };

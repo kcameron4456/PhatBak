@@ -18,6 +18,7 @@ class Create {
 
      Create ();
     ~Create ();
+    void DoCreate ();
     void DoCreate (const string &Dir);
 };
 

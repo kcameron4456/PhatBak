@@ -112,4 +112,7 @@ class ArchFileCreate : public ArchFile {
     void HashAndCompressJob (string &Chunk, HashAndCompressReturn *HACR);
 };
 
+class ArchiveReference : public ArchiveRead {
+};
+
 #endif // ARCHIVE_H

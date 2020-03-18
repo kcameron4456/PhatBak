@@ -85,7 +85,7 @@ LiveFile::LiveFile (const string &name              , const string &stats   , co
         Name.insert (0, O.ExtractTarget);
 
         // break name into parts then create the directory containing the name
-        vector <string> Parts = SplitStr (Name, "/");
+        vecstr Parts = SplitStr (Name, "/");
         Parts.pop_back();
         string Parent = JoinStrs (Parts, "/");
         CreateDir (Parent, 1);
@@ -178,8 +178,8 @@ LiveFile::~LiveFile () {
     Close();
 }
 
-vector <string> LiveFile::GetSubs () {
-    vector <string> Subs;
+vecstr LiveFile::GetSubs () {
+    vecstr Subs;
     if (!IsDir())
         return Subs;
     for (const auto& entry : filesystem::directory_iterator(Name))
@@ -199,9 +199,9 @@ string LiveFile::MakeInfoHeader () const {
 }
 
 void LiveFile::ImportInfoHeader (const string &Hdr) {
-    vector <string> Fields = SplitStr (Hdr, " ");
+    vecstr Fields = SplitStr (Hdr, " ");
     for (auto Field : Fields) {
-        vector <string> Two = SplitStr (Field, ":");
+        vecstr Two = SplitStr (Field, ":");
         if (Two.size() != 2)
             THROW_PBEXCEPTION_FMT ("Illegal header field : %s", Field.c_str());
         string &Name = Two[0];

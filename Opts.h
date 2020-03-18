@@ -35,6 +35,8 @@ class Opts {
     eCompType CompType;         // type of per-file-block compression to use
     int       CompLevel;        // compression effort
     string    ExtractTarget;    // directory into which to place files extracted from an Archive
+    bool      Rebase;           // true to force a new base archive on create
+    string    RefArchive;       // user-specified base archive
     bool      DebugPrint;       // true output trace info for debug
 
     enum      {DoUndef  , DoCreate,

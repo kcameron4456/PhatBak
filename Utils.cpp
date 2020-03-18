@@ -196,7 +196,7 @@ void Utils::CloneBlockDir (const string &SrcDir, const string &DstDir, BlockList
 }
 
 void Utils::SlurpDir (const string &Dir, vecstr &SubDirs, vecstr &SubFiles) {
-    for (const auto& entry : filesystem::directory_iterator(Dir)) {
+    for (const auto &entry : filesystem::directory_iterator(Dir)) {
         fs::path SubPath = entry.path();
         string   SubName = SubPath.filename().string();
         if (is_directory (SubPath))

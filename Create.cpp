@@ -1,9 +1,13 @@
 #include "Create.h"
 #include "Opts.h"
 #include "Logging.h"
+#include "Utils.h"
 
 #include <string>
 #include <vector>
+#include <filesystem>
+using namespace std;
+namespace fs = std::filesystem;
 
 Create::Create () {
     Repo = new RepoInfo   (O.RepoDirName);
@@ -15,6 +19,21 @@ Create::~Create () {
     delete Repo;
 }
 
+void Create::DoCreate () {
+    // see if we want to reference the new archive to a previous one
+    bool Rebase = O.Rebase || Repo->LatestArchName == "";
+    if (Rebase) {
+        printf ("Creating new base archive: %s\n", ArchDirName.c_str());
+    } else {
+        printf ("Creating archive: %s using reference archive: %s\n",
+                ArchDirName.c_str(), Repo->LatestArchName.c_str());
+    }
+
+    // do the archive creation
+    for (auto Dir : O.FileArgs)
+        DoCreate (Utils::CanonizeFileName (Dir));
+}
+
 void Create::DoCreate (const string &Name) {
     if (O.ShowFiles)
         cout << Name << endl;
@@ -22,7 +41,7 @@ void Create::DoCreate (const string &Name) {
     // create local and archive file structures
     LiveFile       *LF      = new LiveFile (Name);
     ArchFileCreate *AF      = new ArchFileCreate (Arch, LF);
-    vector <string> SubDirs = LF->GetSubs();
+    vecstr          SubDirs = LF->GetSubs();
 
     // if the device and inode has already been seen, process hard link
     bool KeepAF = false;

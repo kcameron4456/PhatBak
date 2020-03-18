@@ -12,7 +12,7 @@ ifdef DBG
     # DBG=1 creates debuggable code else fastest
     MYCFLAGS  += -g -O0 -fweb $(DBGMSG) -DLOCKCHECK
 else
-    MYCFLAGS  += -O3 -funroll-loops -finline-functions -fno-diagnostics-color
+    MYCFLAGS  += -O3 -funroll-loops -finline-functions -fno-diagnostics-color -DNDEBUG
 endif
 
 CXXFLAGS =

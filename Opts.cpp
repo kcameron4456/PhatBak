@@ -153,6 +153,7 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     ExtractTarget   = "PhatBakExtract";
     DebugPrint      = 0;
     BlockNumModulus = 1;
+    Rebase          = false;
     for (int i = 0; i < BlockNumDigits; i++)
         BlockNumModulus *= 10;
 
@@ -214,6 +215,8 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PARSE_MinusVal ("--ChunkSize"       ,"%d", &ChunkSize,)
         PARSE_MinusVal ("--BlockNumDigits"  ,"%d", &BlockNumDigits,)
         PARSE_MinusVal ("--BlockNumModulus" ,"%d", &BlockNumModulus,)
+        PARSE_MinusFlg ("--rebase"          ,, Rebase    , 1,)
+        PARSE_MinusStr ("--RefArchive"      ,  RefArchive,   )
         PARSE_MinusFlg ("-h"                ,, arg       , arg, PrintHelp();)
         PARSE_MinusFlg ("-help"             ,, arg       , arg, PrintHelp();)
         PARSE_MinusFlg ("--help"            ,, arg       , arg, PrintHelp();)

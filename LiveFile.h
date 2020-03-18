@@ -47,7 +47,7 @@ class LiveFile {
     inline uint64_t INode() const {return (IsDir() || IsSLink() || Stats.st_nlink < 2) ? 0 : Stats.st_ino;} // only for non-dir hlink files
     inline void     Trunc()       {Stats.st_size = 0;}
 
-    vector <string> GetSubs ();
+    vecstr GetSubs ();
 
     string MakeInfoHeader                    () const ;
     void   ImportInfoHeader (const string &Hdr);
