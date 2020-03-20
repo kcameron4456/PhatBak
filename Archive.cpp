@@ -375,8 +375,8 @@ void ArchFileCreate::CreateJob (bool Keep) {
     // get matching file info from reference archive
 //DBG ("CreateJob Name=%s\n", Name.c_str());
     ArchiveReference *RefArch = ((ArchiveCreate*)Arch)->ArchRef;
-    ArchFileRead          *RF = NULL;
-    FileListEntry          FileEntry;
+    ArchFileRead     *RF = NULL;
+    FileListEntry     FileEntry;
     if (RefArch && RefArch->FileMap.count (Name)) {
         FileEntry = RefArch->FileMap[Name];
 
@@ -404,7 +404,7 @@ void ArchFileCreate::CreateJob (bool Keep) {
         // eliminate the FInfo block
         Arch->FInfoBlocks->UnLink (FileEntry.BlkNum);
 
-        // elimintate the File from the reference filemap
+        // eliminate the File from the reference filemap
         RefArch->FileMapMtx.lock();
         RefArch->FileMap   .erase (Name);
         RefArch->FileMapMtx.unlock();
