@@ -50,6 +50,7 @@ class BlockList {
     void    Clone           (BlockList &Ref);
     void    ReverseAlloc    ();
     void    ReverseAlloc    (const string &Dir);
+    void    UnLink          (i64 Idx);
 };
 
 #endif // BLOCKLIST_H

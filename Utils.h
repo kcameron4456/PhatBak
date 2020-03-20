@@ -82,6 +82,9 @@ namespace Utils {
 
     // convert stats time_t to ns time
     u64 TimeSpec_ToNs (const timespec &T);
+
+    // return true if two timespecs are equal
+    bool TimeSpecsEqual (const timespec &T1, const timespec &T2);
 }
 
 #endif // UTILS_H

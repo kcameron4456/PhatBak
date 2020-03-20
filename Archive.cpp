@@ -357,16 +357,67 @@ void ArchFileCreate::HashAndCompressJob (string &Chunk, HashAndCompressReturn *H
 }
 
 void ArchFileCreate::CreateJob (bool Keep) {
-    // check against reference archive
+    // get matching file info from reference archive
 DBG ("CreateJob Name=%s\n", Name.c_str());
     ArchiveReference *RefArch = ((ArchiveCreate*)Arch)->ArchRef;
+    ArchFileRead          *RF = NULL;
+    FileListEntry          FileEntry;
     if (RefArch && RefArch->FileMap.count (Name)) {
-        auto FileEntry = RefArch->FileMap[Name];
+        FileEntry = RefArch->FileMap[Name];
 
-        // compare the live file to the reference archive
-        ArchFileRead *RF = new ArchFileRead ((ArchiveRead *)Arch, FileEntry);
-DBG ("CreateJob %s stats = %s\n", Name.c_str(), CreateStatsHeader(RF->Stats).c_str());
+        // grab info from the reference archive
+        RF = new ArchFileRead ((ArchiveRead *)Arch, FileEntry);
+DBG ("CreateJob Name Match\n");
+DBG ("LF size = %ld  RF size = %ld\n", LF->Stats.st_size, RF->Stats.st_size);
     }
+
+    // if the reference is too different,
+    // eliminate linked copy in new archive
+    if (RF && (
+         (                 (LF->Stats.st_mode != RF->Stats.st_mode))
+      || (LF->IsFile()  && (LF->Stats.st_size != RF->Stats.st_size))
+      || (LF->IsSLink() && (LF->LinkTarget    != RF->LinkTarget   ))
+       )) {
+
+DBG ("Unlinking\n");
+        // eliminate hard-linked chunk blocks
+        for (auto &Chunk : RF->Chunks) {
+DBG ("Unlinking Chunk %ld\n", Chunk.Idx);
+            Arch->ChunkBlocks->UnLink (Chunk.Idx);
+        }
+
+        // eliminate the FInfo block
+        Arch->FInfoBlocks->UnLink (FileEntry.BlkNum);
+
+        // elimintate the File from the reference filemap
+        RefArch->FileMapMtx.lock();
+        RefArch->FileMap   .erase (Name);
+        RefArch->FileMapMtx.unlock();
+
+        delete RF;
+        RF = NULL;
+    }
+
+    // see if we can just clone the file
+    // must be same type and other mode bits
+    // for regular files, mtime and size must match
+    // for symbolic links, target must match
+//    if (RF) {
+//DBG ("CreateJob %s stats = %s\n", Name.c_str(), CreateStatsHeader(RF->Stats).c_str());
+//        if (LF->Stats.st_mode == RF->Stats.st_mode
+//         && !LF->IsFile() || (                   LF->Stats.st_size == RF->Stats.st_size
+//                              && TimeSpecsEqual (LF->Stats.st_mtim  , RF->Stats.st_mtim)
+//                             )
+//         && !LF->IsSLink()  || (LF->LinkTarget == RF->LinkTarget)
+//           ) {
+//DBG ("CreateJob %s matches reference\n", Name.c_str());
+//            // file hasn't changed since reference archive entry was created
+//            // just link to it in the file list
+//            ListEntry = FileEntry;
+//        }
+//    }
+
+if (RF) delete RF;  // not sure where this goes
 
     // Create Finfo file contents
     string FInfo = "H-" + CreateStatsHeader (LF->Stats) + "\n";

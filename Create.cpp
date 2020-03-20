@@ -14,7 +14,6 @@ Create::Create () {
     Repo = new RepoInfo   (O.RepoDirName);
 
     // see if we want to reference the new archive to a previous one
-cout << Repo->LatestArchName << " " << O.ArchDirName << endl;
     bool Rebase = O.Rebase || Repo->LatestArchName == "" || Repo->LatestArchName == O.ArchDirName;
     ArchRef = NULL;
     if (Rebase) {

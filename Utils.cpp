@@ -264,3 +264,8 @@ timespec Utils::NsToTimeSpec (u64 ns) {
 u64 Utils::TimeSpec_ToNs (const timespec &T) {
     return (u64) T.tv_sec * 1000000000 + (u64) T.tv_nsec;
 }
+
+// return true if two timespecs are equal
+bool Utils::TimeSpecsEqual (const timespec &T1, const timespec &T2) {
+    return T1.tv_sec == T2.tv_sec && T1.tv_nsec == T2.tv_nsec;
+}

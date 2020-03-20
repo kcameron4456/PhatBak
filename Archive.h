@@ -78,6 +78,7 @@ class ArchiveRead : public Archive {
 class ArchiveReference : public ArchiveRead {
     public:
     map <string, FileListEntry> FileMap;
+    mutex                       FileMapMtx;
 
      ArchiveReference (RepoInfo *repo, const string &name);
     ~ArchiveReference ();

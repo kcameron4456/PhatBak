@@ -281,3 +281,12 @@ void BlockList::ReverseAlloc (const string &Dir) {
     for (auto SubDir : SubDirs)
         ReverseAlloc (Dir + "/" + SubDir);
 }
+
+// deallocate block index and delete associate block file 
+void BlockList::UnLink (i64 Idx) {
+    string FName = Idx2FileName (Idx);
+DBG ("UnLink: Deleting %s\n", FName.c_str());
+    Free (Idx);
+    if (!fs::remove (FName))
+        THROW_PBEXCEPTION_IO ("Can't delete %s", FName.c_str());
+}
