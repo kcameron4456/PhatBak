@@ -22,6 +22,8 @@ class HashAndCompressReturn {
     char         CompFlag;
     i64          BlockIdx;
     string       HashHex;
+
+    HashAndCompressReturn () : BL (true) {}
 };
 
 // feilds of "List" file
@@ -115,22 +117,22 @@ class ArchFileRead : public ArchFile {
      ArchFileRead (ArchiveRead *arch, const FileListEntry &ListEntry);
     ~ArchFileRead ();
 
-    void          DoExtract      ();
-    void          SlurpFinfo     (i64 Idx, string &FInfoPacked);
+    void DoExtract  ();
 };
 
 class ArchFileCreate : public ArchFile {
     public:
-    string            Name;
-    LiveFile         *LF;
-    vector <u64> DataBlkNs;
+    string    Name;
+    LiveFile *LF;
 
     ArchFileCreate (ArchiveCreate *arch, LiveFile *lf);
 
     void Create     (bool Keep);            // add file to archive
     void CreateJob  (bool Keep);            // add file to archive (runs within thread)
     void CreateLink (ArchFileCreate *Prev); // link to previously archived file
-    void HashAndCompressJob (string &Chunk, HashAndCompressReturn *HACR);
+    void HashAndCompressJob (const string &ChunkData
+                            ,ChunkInfo *RefChunkInfo, BlockList *RefBlockList
+                            ,HashAndCompressReturn *HACR);
 };
 
 #endif // ARCHIVE_H

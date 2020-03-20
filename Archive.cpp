@@ -36,13 +36,13 @@ FileListEntry Archive::ParseListLine (const string &ListLine, u64 LineNo) {
 
     // parse file list entry
     // separate filename from attributes
-    vector <string> FirstCut = SplitStr (ListLine, " /../ ");
+    vecstr FirstCut = SplitStr (ListLine, " /../ ");
     if (FirstCut.size() != 2)
         THROW_PBEXCEPTION_FMT ("%s:%llu has bad format", ListPath.c_str(), LineNo);
     Res.Name = FirstCut[0];
 
     // separate fields of rhs
-    vector <string> RHSToks = SplitStr (FirstCut[1], " ");
+    vecstr RHSToks = SplitStr (FirstCut[1], " ");
     if (RHSToks.size() != 3)
         THROW_PBEXCEPTION_FMT ("%s:%llu has bad format", ListPath.c_str(), LineNo);
     Res.BlkNum   = stoull (RHSToks[0]);
@@ -74,7 +74,7 @@ void ArchiveRead::ParseOptions () {
     string OptLine;
     while (getline (OptsFile, OptLine)) {
         // split into name/value pairs
-        vector <string> Toks = SplitStr (OptLine, "=");
+        vecstr Toks = SplitStr (OptLine, "=");
 
         // skip non-option lines
         if (Toks.size() != 2)
@@ -162,13 +162,13 @@ ArchiveReference::ArchiveReference (RepoInfo *repo, const string &name) : Archiv
     // create a list of files with first-order info
     fstream FL = OpenReadStream (ListPath);
     string Line;
-    u64 LineCount = 0;
-DBG ("ArchiveReference this=%p\n", this);
+    u64 LineCount = 1;
+//DBG ("ArchiveReference this=%p\n", this);
     while (getline (FL, Line)) {
-        LineCount ++;
         FileListEntry FLE = ParseListLine (Line, LineCount);
-DBG ("ArchiveReference Name=%s\n", FLE.Name.c_str());
+//DBG ("ArchiveReference Name=%s\n", FLE.Name.c_str());
         FileMap [FLE.Name] = FLE;
+        LineCount ++;
     }
     FL.close();
 
@@ -289,7 +289,7 @@ ArchFileRead::ArchFileRead (ArchiveRead *arch, const FileListEntry &listentry) :
         THROW_PBEXCEPTION_FMT ("Hash mismatch on FInfo block #%llu", ListEntry.BlkNum);
 
     // parse finfo
-    vector <string> FInfoLines = SplitStr (*SelData, "\n");
+    vecstr FInfoLines = SplitStr (*SelData, "\n");
     for (auto Line : FInfoLines) {
         if (Line.size() < 3 || Line[1] != '-')
             THROW_PBEXCEPTION_FMT ("Illegal FInfo format: %s", Line.c_str());
@@ -304,7 +304,7 @@ ArchFileRead::ArchFileRead (ArchiveRead *arch, const FileListEntry &listentry) :
 
             case 'U' :
             case 'C' : {
-                vector <string> Parts = SplitStr (Line, " ");
+                vecstr Parts = SplitStr (Line, " ");
                 Chunks.emplace_back (RecType == 'U' ? CompType_NONE : O.CompType,
                                      stoull (Parts[0].c_str()),
                                      Parts[1],
@@ -331,29 +331,44 @@ ArchFileCreate::ArchFileCreate (ArchiveCreate *arch, LiveFile *lf) : ArchFile (a
     Mtx.lock();
 }
 
-void ArchFileCreate::HashAndCompressJob (string &Chunk, HashAndCompressReturn *HACR) {
+void ArchFileCreate::HashAndCompressJob (const string &ChunkData
+                                        ,ChunkInfo *RefChunkInfo, BlockList *RefBlockList
+                                        ,HashAndCompressReturn *HACR) {
     // compute hash
     Hash Hasher (O.HashType);
-    HACR->HashHex = Hasher.HashStr(Chunk);
+    HACR->HashHex = Hasher.HashStr(ChunkData);
 
-    // compress the chunk
-    // if compression doesn't help, keep it uncompressed
-    string *SelChunk = &Chunk;
-    HACR->CompFlag = CompFlagUnComp;
-    string Compressed;
-    if (O.CompType != CompType_NONE) {
-        Comp::Compress (Chunk, Compressed);
-        if (Compressed.size() < Chunk.size()) {
-            SelChunk       = &Compressed;
-            HACR->CompFlag =  CompFlagComp;
+    // compare to reference hash
+    if (RefChunkInfo && HACR->HashHex == RefChunkInfo->Hash) {
+        // keep cloned chunk
+        HACR->CompFlag = RefChunkInfo->CompType == CompType_NONE ? CompFlagUnComp : CompFlagComp;
+        HACR->BlockIdx = RefChunkInfo->Idx;
+    } else {
+        // create fresh chunk
+
+        // unlink cloned chunk block
+        if (RefChunkInfo)
+            RefBlockList->UnLink (RefChunkInfo->Idx);
+
+        // compress the chunk
+        // if compression doesn't help, keep it uncompressed
+        const string *SelChunk = &ChunkData;
+        HACR->CompFlag = CompFlagUnComp;
+        string Compressed;
+        if (O.CompType != CompType_NONE) {
+            Comp::Compress (ChunkData, Compressed);
+            if (Compressed.size() < ChunkData.size()) {
+                SelChunk       = &Compressed;
+                HACR->CompFlag =  CompFlagComp;
+            }
         }
+
+        // write the chunk to archive
+        HACR->BlockIdx = Arch->ChunkBlocks->SpitNewBlock (*SelChunk);
     }
 
-    // write the chunk to archive
-    HACR->BlockIdx = Arch->ChunkBlocks->SpitNewBlock (*SelChunk);
-
     // notify the caller that hash and compress are complete
-    HACR->BL.PostBusy();
+    HACR->BL.PostIdle();
 }
 
 void ArchFileCreate::CreateJob (bool Keep) {
@@ -379,10 +394,10 @@ DBG ("LF size = %ld  RF size = %ld\n", LF->Stats.st_size, RF->Stats.st_size);
       || (LF->IsSLink() && (LF->LinkTarget    != RF->LinkTarget   ))
        )) {
 
-DBG ("Unlinking\n");
+//DBG ("Unlinking\n");
         // eliminate hard-linked chunk blocks
         for (auto &Chunk : RF->Chunks) {
-DBG ("Unlinking Chunk %ld\n", Chunk.Idx);
+//DBG ("Unlinking Chunk %ld\n", Chunk.Idx);
             Arch->ChunkBlocks->UnLink (Chunk.Idx);
         }
 
@@ -405,31 +420,42 @@ DBG ("Unlinking Chunk %ld\n", Chunk.Idx);
     if (LF->IsFile()) {
         vector <HashAndCompressReturn *> Returns;
 
-        string Chunk;
+        string ChunkData;
+        u32    ChunkIdx;    
         LF->OpenRead();
-        while (LF->ReadChunk (Chunk)) {
+        while (LF->ReadChunk (ChunkData)) {
             HashAndCompressReturn *Return = new HashAndCompressReturn;
             Returns.push_back (Return);
+
+            ChunkInfo *RefChunkInfo = NULL;
+            BlockList *RefBlockList = NULL;
+            if (RF && ChunkIdx < RF->Chunks.size()) {
+                RefChunkInfo = &RF->Chunks[ChunkIdx];
+                RefBlockList =  RF->Arch->ChunkBlocks;
+            }
 
             // try to allocate a thread
             JobCtrl *Thr = ThreadPool.AllocThread(0);
             if (Thr) {
                 // get help
-                Thr->JobType                 = JobCtrl::CompressChunk;
-                Thr->CompressChunkInfo.AF    = this;
-                Thr->CompressChunkInfo.Chunk = Chunk;
-                Thr->CompressChunkInfo.HACR  = Return;
+                Thr->JobType                        = JobCtrl::CompressChunk;
+                Thr->CompressChunkInfo.AF           = this;
+                Thr->CompressChunkInfo.RefChunkInfo = RefChunkInfo;
+                Thr->CompressChunkInfo.RefBlockList = RefBlockList;
+                Thr->CompressChunkInfo.HACR         = Return;
                 Thr->Go();
             } else {
                 // do it ourselves
-                HashAndCompressJob (Chunk, Return);
+                HashAndCompressJob (ChunkData, RefChunkInfo, RefBlockList, Return);
             }
+
+            ChunkIdx++;
         }
         LF->Close();
 
         for (auto Return : Returns) {
             // wait for the job to complete
-            Return->BL.WaitBusy();
+            Return->BL.WaitIdle();
 
             // add chunk to finfo
             FInfo += string("") + Return->CompFlag + "-" + to_string (Return->BlockIdx) + " " + Return->HashHex + "\n";

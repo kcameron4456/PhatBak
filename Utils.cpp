@@ -230,7 +230,7 @@ struct stat Utils::ParseStatsHeader (const string &Hdr) {
         else if (Name == "uid"  ) Stats.st_uid  =               strtoull (Val.c_str(), NULL, 16);
         else if (Name == "gid"  ) Stats.st_gid  =               strtoull (Val.c_str(), NULL, 16);
         else if (Name == "size" ) Stats.st_size =               strtoull (Val.c_str(), NULL, 10);
-        else if (Name == "mtime") Stats.st_mtim = NsToTimeSpec (strtoull (Val.c_str(), NULL, 16);
+        else if (Name == "mtime") Stats.st_mtim = NsToTimeSpec (strtoull (Val.c_str(), NULL, 16));
     }
     return Stats;
 }

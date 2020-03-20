@@ -41,7 +41,9 @@ class JobCtrl {
     } ExtractFileInfo;
     struct {
         ArchFileCreate        *AF;
-        string                 Chunk;
+        string                 ChunkData;
+        ChunkInfo             *RefChunkInfo;
+        BlockList             *RefBlockList;
         HashAndCompressReturn *HACR;
     } CompressChunkInfo;
     struct {

@@ -37,19 +37,21 @@ void BackGroundWorker (JobCtrl *Job) {
                     break;
                 case JobCtrl::CompressChunk :
                     Job->CompressChunkInfo.AF->HashAndCompressJob (
-                        Job->CompressChunkInfo.Chunk
+                        Job->CompressChunkInfo.ChunkData
+                       ,Job->CompressChunkInfo.RefChunkInfo
+                       ,Job->CompressChunkInfo.RefBlockList
                        ,Job->CompressChunkInfo.HACR
                        );
-                    Job->CompressChunkInfo.Chunk = ""; // release potentially large buffer
+                    Job->CompressChunkInfo.ChunkData.resize (0); // release potentially large buffer
                     break;
                 case JobCtrl::ExtractChunk :
                     ExtractChunkJob (
-                        Job->ExtractChunkInfo.Chunk,
-                        Job->ExtractChunkInfo.ChunkBlocks,
-                        Job->ExtractChunkInfo.BlockIdx,
-                        Job->ExtractChunkInfo.F,
-                        Job->ExtractChunkInfo.Lock,
-                        Job->ExtractChunkInfo.PrevLock
+                        Job->ExtractChunkInfo.Chunk
+                       ,Job->ExtractChunkInfo.ChunkBlocks
+                       ,Job->ExtractChunkInfo.BlockIdx
+                       ,Job->ExtractChunkInfo.F
+                       ,Job->ExtractChunkInfo.Lock
+                       ,Job->ExtractChunkInfo.PrevLock
                     );
                     break;
                 default:
