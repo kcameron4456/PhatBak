@@ -144,7 +144,7 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     VersionMinor    = VERSION_MINOR;
     Operation       = DoUndef;
     ShowFiles       = 0;
-    NumThreads      = 20;
+    NumThreads      = 100;
     CompType        = CompType_ZTSD;
     CompLevel       = 2;
     BlockNumDigits  = 2;
