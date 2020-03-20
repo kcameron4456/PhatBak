@@ -421,7 +421,7 @@ DBG ("LF size = %ld  RF size = %ld\n", LF->Stats.st_size, RF->Stats.st_size);
         vector <HashAndCompressReturn *> Returns;
 
         string ChunkData;
-        u32    ChunkIdx;    
+        u32    ChunkIdx = 0;    
         LF->OpenRead();
         while (LF->ReadChunk (ChunkData)) {
             HashAndCompressReturn *Return = new HashAndCompressReturn;
