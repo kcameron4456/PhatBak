@@ -45,7 +45,7 @@ FileListEntry Archive::ParseListLine (const string &ListLine, u64 LineNo) {
     Res.CompFlag      = CompFlagUnComp;
     Res.Stats.st_mode = 0;
     Res.LinkTarget    = "";
-    Res.FInfoIdx      = -1;
+    Res.FInfoIdx      = INT64_MIN; // most negative possible
     Res.LineNo        = LineNo;
 
     // separate fields of rhs
@@ -139,7 +139,7 @@ void ArchiveRead::DoExtractJob (const string &ListLine, u64 LineNo) {
     // if one's been seen before, create a hard link
     bool          DoHLink = false;
     HLinkSyncRec *HLS     = NULL;
-    if (AF->ListEntry.FInfoIdx >= 0) {
+    if (AF->ListEntry.FInfoIdx != INT64_MIN) {
         HLinkSyncsMtx.lock();
 
         DoHLink = HLinkSyncs.count (AF->ListEntry.FInfoIdx) != 0;
@@ -236,7 +236,8 @@ ArchiveReference::~ArchiveReference () {
 //////////////////////////////////////////////////////////////////////
 ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveReference *ref) : Archive (repo, name) {
     DBGCTOR;
-    ArchRef = ref;
+    ZeroLenIdx = -1;
+    ArchRef    = ref;
 
     // create archive dir
     if (fs::exists (ArchDirPath))
@@ -299,7 +300,7 @@ void ArchiveCreate::PushListEntry (const FileListEntry &ListEntry) {
     SListLine << "gid:"   << hex <<                ListEntry.Stats.st_gid   << " ";
     SListLine << "size:"  << dec <<                ListEntry.Stats.st_size  << " "; // note: decimal
     SListLine << "mtime:" << hex << TimeSpec_ToNs (ListEntry.Stats.st_mtim)       ;
-    if (S_ISREG(ListEntry.Stats.st_mode))
+    if (ListEntry.FInfoIdx != INT64_MIN)
         SListLine << " " << ListEntry.CompFlag << ":" << dec << ListEntry.FInfoIdx;
     if (S_ISLNK(ListEntry.Stats.st_mode))
         SListLine << ListRecSep << "slink:" << ListEntry.LinkTarget;
@@ -372,6 +373,7 @@ ArchFileRead::~ArchFileRead () {
 //////////////////////////////////////////////////////////////////////
 ArchFileCreate::ArchFileCreate (ArchiveCreate *arch, LiveFile *lf) : ArchFile (arch) {
     DBGCTOR;
+    Arch   = arch;
     LF     = lf;
     Name   = LF->Name;
 
@@ -465,9 +467,10 @@ void ArchFileCreate::CreateJob (bool Keep) {
     ListEntry.Stats      = LF->Stats;
     ListEntry.CompFlag   = CompFlagUnComp;
     ListEntry.LinkTarget = LF->LinkTarget;
+    ListEntry.FInfoIdx   = INT64_MIN;
 
     // For files, create chunks
-    if (LF->IsFile()) {
+    if (LF->IsFile() && LF->Stats.st_size > 0) {
         vector <HashAndCompressReturn *> Returns;
 
         string ChunkData;
@@ -529,6 +532,15 @@ void ArchFileCreate::CreateJob (bool Keep) {
 
         // Put the finfo into the archive
         ListEntry.FInfoIdx = Arch->FInfoBlocks->SpitNewBlock (*SelFInfo);
+    }
+
+    // use negative FInfoIdx to designate hardlinked zero-size files (or pipes, etc)
+    if (LF->Stats.st_size == 0 && !LF->IsDir() && !LF->IsSLink()) {
+        Arch->ZeroLenIdxMtx.lock();
+
+        ListEntry.FInfoIdx = --Arch->ZeroLenIdx;
+
+        Arch->ZeroLenIdxMtx.unlock();
     }
 
     // update file list

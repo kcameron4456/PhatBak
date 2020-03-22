@@ -22,7 +22,6 @@ BlockList::~BlockList () {
 i64 BlockList::Alloc () {
     unique_lock<mutex> lock(Mtx);
 
-
     // create at head of list if idx 0 isn't allocated
     if (Ranges.size() == 0 || Ranges [0].min > 1) {
         // create first allocated range
@@ -62,6 +61,7 @@ i64 BlockList::Alloc () {
 // free a block index from the allocated blocks
 void BlockList::Free (i64 Idx) {
     unique_lock<mutex> lock(Mtx);
+    assert (Idx >= 0);
 
     // find the range containing the block index
     i64 RangeIdx = Search (Idx);
@@ -100,6 +100,7 @@ void BlockList::Free (i64 Idx) {
 // mark a block as allocated
 void BlockList::MarkAllocated (i64 Idx) {
     unique_lock<mutex> lock(Mtx);
+    assert (Idx >= 0);
 
     i64 RangeIdx = Search (Idx);
 //DBG ("MarkAllocated (%d): RangeIdx= %d\n", (int)Idx, (int)RangeIdx);
@@ -150,6 +151,7 @@ void BlockList::MarkAllocated (i64 Idx) {
 
 // find the last tuple whose max value is less than or equal to a given index
 i64 BlockList::Search (i64 Idx) {
+    assert (Idx >= 0);
     return Search (Idx, 0, Ranges.size()-1);
 }
 
@@ -194,6 +196,7 @@ i64 BlockList::CountAllocated () const {
 
 // convert a block number to a list of directory components
 vecstr BlockList::GetSubDirs (i64 Idx) const {
+    assert (Idx >= 0);
     vecstr SubDirs;
     i64 TmpIdx = Idx / O.BlockNumModulus;
     while (TmpIdx) {
@@ -209,6 +212,7 @@ vecstr BlockList::GetSubDirs (i64 Idx) const {
 
 // convert a block number to a directory path
 string BlockList::Idx2DirString (i64 Idx) const {
+    assert (Idx >= 0);
     vecstr Dirs = GetSubDirs (Idx);
     Dirs.insert (Dirs.begin(), 1, TopDir);
     return Utils::JoinStrs (Dirs, "/");
@@ -220,6 +224,7 @@ string BlockList::Idx2FileName (i64 Idx) const {
 }
 
 void BlockList::SlurpBlock (i64 Idx, string &BufStr) const {
+    assert (Idx >= 0);
     FILE *F = Utils::OpenReadBin (Idx2FileName (Idx));
 
     unsigned TotalSize = 0;
@@ -237,6 +242,7 @@ void BlockList::SlurpBlock (i64 Idx, string &BufStr) const {
 }
 
 void BlockList::SpitBlock (i64 Idx, const string &BufStr) {
+    assert (Idx >= 0);
     // create subdirs
     string SubDirName = Idx2DirString(Idx);
     Utils::CreateDir (SubDirName, true);
@@ -253,6 +259,7 @@ i64 BlockList::SpitNewBlock (const string &BufStr) {
 }
 
 void BlockList::Link (i64 Idx, const string &Target) {
+    assert (Idx >= 0);
     string Dir = Idx2DirString (Idx);
     Utils::CreateDir (Dir, 1);
     string LinkName = Dir + "/" + to_string (Idx);
@@ -284,6 +291,7 @@ void BlockList::ReverseAlloc (const string &Dir) {
 
 // deallocate block index and delete associate block file 
 void BlockList::UnLink (i64 Idx) {
+    assert (Idx >= 0);
     string FName = Idx2FileName (Idx);
 DBG ("UnLink: Deleting %s\n", FName.c_str());
     Free (Idx);

@@ -53,7 +53,7 @@ class Archive {
 };
 
 class ArchiveRead : public Archive {
-    map <u64, HLinkSyncRec*> HLinkSyncs;
+    map <i64, HLinkSyncRec*> HLinkSyncs;
     mutex                    HLinkSyncsMtx;
     vector <DirAttribRec>    DirAttribs;
     mutex                    DirAttribsMtx;
@@ -80,7 +80,9 @@ class ArchiveReference : public ArchiveRead {
 
 class ArchiveCreate : public Archive {
     public:
-    ArchiveReference     *ArchRef;
+    i64               ZeroLenIdx;
+    mutex             ZeroLenIdxMtx;
+    ArchiveReference *ArchRef;
 
      ArchiveCreate (RepoInfo *repo, const string &name, ArchiveReference *ref);
     ~ArchiveCreate ();
@@ -104,6 +106,7 @@ class ArchFile {
 
 class ArchFileRead : public ArchFile {
     public:
+    ArchiveRead    *Arch;
 
      ArchFileRead (ArchiveRead *arch, const FileListEntry &ListEntry);
     ~ArchFileRead ();
@@ -113,8 +116,9 @@ class ArchFileRead : public ArchFile {
 
 class ArchFileCreate : public ArchFile {
     public:
-    string    Name;
-    LiveFile *LF;
+    ArchiveCreate *Arch;
+    string         Name;
+    LiveFile      *LF;
 
     ArchFileCreate (ArchiveCreate *arch, LiveFile *lf);
 
