@@ -90,7 +90,7 @@ class ArchiveCreate : public Archive {
 
     void Init                 (RepoInfo *repo, const string &name);
     void PushListEntry        (const FileListEntry &ListEntry);
-    void PurgeUnusedBlocksJob (const FileListEntry *ListEntry);
+    void PurgeUnusedBlocksJob (const FileListEntry &ListEntry);
     void PurgeUnusedBlocks    ();
 };
 

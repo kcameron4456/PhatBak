@@ -28,7 +28,6 @@ class BlockList {
     string                   TopDir;
     vector <BlockRangeTuple> Ranges;
     mutex                    Mtx;
-    map <string, BusyLock *> DirLockMap; // used to resolve races between dir create/delete
 
     i64 Search (i64 Idx);
     i64 Search (i64 Idx, i64 Start, i64 End);

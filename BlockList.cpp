@@ -246,11 +246,32 @@ void BlockList::Link (i64 Idx, const string &Target) {
 }
 
 void BlockList::Clone (const BlockList &Base) {
+#if 1
     for (auto &BaseRange : Base.Ranges)
         for (i64 Idx = BaseRange.min; Idx <= BaseRange.max; Idx++) {
             Link (Idx, Base.Idx2FileName(Idx));
             MarkAllocated (Idx);
         }
+#else
+// maybe later
+    error_code ec;
+    // get rid of the top directory
+    if (!fs::remove (TopDir, ec)
+       && ec
+       && ec != errc::no_such_file_or_directory
+       )
+        THROW_PBEXCEPTION_IO ("Can't remove directory: %s: %s", ec.message().c_str(), TopDir.c_str());
+
+    // recursive copy with hardlinks from base
+    fs::copy (Base.TopDir, TopDir
+             ,fs::copy_options::recursive | fs::copy_options::create_hard_links
+             ,ec
+             );
+    if (ec)
+        THROW_PBEXCEPTION_IO ("Can't copy blocks from %s to %s\n", Base.TopDir.c_str(), TopDir.c_str());
+
+    ReverseAlloc(TopDir);
+#endif
 }
 
 void BlockList::ReverseAlloc () {
@@ -270,11 +291,7 @@ void BlockList::ReverseAlloc (const string &Dir) {
 
 // deallocate block index and delete associate block file 
 void BlockList::UnLink (i64 Idx) {
-DBG ("BlockList::UnLink %s:%ld\n", TopDir.c_str(), Idx);
     assert (Idx >= 0);
-
-PB_Exception e;
-DBG ("BlockList::UnLink %s %s\n", Idx2FileName(Idx).c_str(), e.Backtrace().c_str());
 
     Free (Idx);
     string DirName = Idx2DirString (Idx);
@@ -282,16 +299,14 @@ DBG ("BlockList::UnLink %s %s\n", Idx2FileName(Idx).c_str(), e.Backtrace().c_str
     if (!fs::remove (FName))
         THROW_PBEXCEPTION_IO ("Can't delete: %s", FName.c_str());
 
-    // resolve contention for the dir
-    //BusyLock Lock(1);
-    //Mtx.lock();
-    //MyLock = DirLockMap.count (DirName) == 0;
-    //if (MyLock)
-    //    DirLockMap [DirName] = &Lock;
-    //Mtx.unlock();
-    //if (!MyLock)
-    //    DirLockMap [DirName]->WaitIdle();
-
-    if (fs::is_empty (DirName) && !fs::remove (DirName))
-        THROW_PBEXCEPTION_IO ("Can't remove directory: %s", FName.c_str());
+    // try to remove the directory
+    // catch error code if it's not empty
+    // catch error code if another thread already removed it
+    error_code ec;
+    if (!fs::remove (DirName, ec)
+       && ec
+       && ec != errc::no_such_file_or_directory
+       && ec != errc::directory_not_empty
+       )
+        THROW_PBEXCEPTION_IO ("Can't remove directory: %s: %s", ec.message().c_str(), DirName.c_str());
 }

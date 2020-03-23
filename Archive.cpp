@@ -244,6 +244,7 @@ fprintf (stderr, "ArchiveBase::ArchiveBase listed %ld files\n", (long)FileMap.si
     }
     ReverseAllocJob (FInfoBlocks); // no need for another thread
     ThreadPool.WaitIdle();
+fprintf (stderr, "ArchiveBase::ArchiveBase reverse allocation complete\n");
 }
 
 void ReverseAllocJob (BlockList *Blocks) {
@@ -294,6 +295,7 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveBase *b
         }
         CloneBlocksJob (FInfoBlocks, ArchBase->FInfoBlocks); // no need for another thread
         ThreadPool.WaitIdle();
+fprintf (stderr, "ArchiveCreate::ArchiveCreate clone complete\n");
     }
 
     // start the file list
@@ -343,13 +345,13 @@ void ArchiveCreate::PushListEntry (const FileListEntry &ListEntry) {
     LocalMtx.unlock();
 }
 
-void ArchiveCreate::PurgeUnusedBlocksJob (const FileListEntry *ListEntry) {
-    ArchFileRead RF (ArchBase, *ListEntry);
+void ArchiveCreate::PurgeUnusedBlocksJob (const FileListEntry &ListEntry) {
+    ArchFileRead RF (ArchBase, ListEntry);
 
-    // purge
+    // purge chunks and finfo
     for (auto &Chunk : RF.Chunks)
         ChunkBlocks->UnLink (Chunk.ChunkIdx);
-    FInfoBlocks->UnLink (ListEntry->FInfoIdx);
+    FInfoBlocks->UnLink (ListEntry.FInfoIdx);
 }
 
 // eliminate unused but preallocated finfo and chunk blocks
@@ -362,7 +364,7 @@ void ArchiveCreate::PurgeUnusedBlocks () {
 fprintf (stderr, "ArchiveCreate::PurgeUnusedBlocks purging %ld files\n", (long)ArchBase->FileMap.size());
 
     map <i64, bool> PurgeFinfoMap; // don't try to purge twice
-    for (auto [Name, ListEntry] : ArchBase->FileMap) {
+    for (auto &[Name, ListEntry] : ArchBase->FileMap) {
         if (ListEntry.FInfoIdx < 0)
             continue;
 
@@ -371,9 +373,14 @@ fprintf (stderr, "ArchiveCreate::PurgeUnusedBlocks purging %ld files\n", (long)A
             continue;
         PurgeFinfoMap [ListEntry.FInfoIdx] = 1;
 
-        if (ListEntry.FInfoIdx >= 0) {
-            //auto Thr = ThreadPool.AllocThread();
-            PurgeUnusedBlocksJob (&ListEntry);
+        if (O.NumThreads) {
+            JobCtrl *Job                         = ThreadPool.AllocThread();
+            Job->JobType                         = JobCtrl::PurgeUnusedBlocks;
+            Job->PurgeUnusedBlocksInfo.Arch      = this;
+            Job->PurgeUnusedBlocksInfo.ListEntry = ListEntry;
+            Job->Go();
+        } else {
+            PurgeUnusedBlocksJob (ListEntry);
         }
     }
 }

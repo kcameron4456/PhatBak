@@ -66,6 +66,11 @@ void BackGroundWorker (JobCtrl *Job) {
                        ,Job->CloneBlocksInfo.SourceBlocks
                     );
                     break;
+                case JobCtrl::PurgeUnusedBlocks :
+                    Job->PurgeUnusedBlocksInfo.Arch->PurgeUnusedBlocksJob (
+                        Job->PurgeUnusedBlocksInfo.ListEntry
+                    );
+                    break;
                 default:
                     THROW_PBEXCEPTION ("Unrecognized job type: %d", Job->JobType);
             }
