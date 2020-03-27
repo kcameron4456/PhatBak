@@ -99,6 +99,8 @@ ArchiveRead::ArchiveRead (RepoInfo *repo, const string &name) : Archive (repo, n
 
 ArchiveRead::~ArchiveRead() {
     DBGDTOR;
+    for (auto Itr : HLinkSyncs)
+        delete Itr.second;
 }
 
 void ArchiveRead::ParseOptions () {
