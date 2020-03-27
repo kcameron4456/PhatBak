@@ -32,6 +32,16 @@ Create::Create () {
 }
 
 Create::~Create () {
+    for (auto Itr : Inodes) {
+        u32 Dev = Itr.first;
+        map <u64, InodeInfo*> &INodeMap = Itr.second;
+        for (auto Itr : Inodes[Dev]) {
+            u64        InodeNum = Itr.first;
+            InodeInfo *Inode    = Itr.second;
+            assert (Inode);
+            delete Inode;
+        }
+    }
     delete Arch;
     if (ArchBase)
         delete ArchBase;
@@ -72,10 +82,6 @@ void Create::DoCreate () {
     // wait for threads to complete
     ThreadPool.WaitIdle();
 
-    // free resources
-    for (auto AF : KeptAFs)
-        delete AF;
-
     Repo->Finish(O.ArchDirName);
 }
 
@@ -89,34 +95,44 @@ void Create::DoCreate (const string &Name, bool Recurse) {
     ArchFileCreate *AF   = new ArchFileCreate (Arch, LF);
 
     // if the device and inode has already been seen, process hard link
-    bool KeepAF = false;
-    if (uint32_t INode = LF->INode()) {
-        uint32_t Dev = LF->Dev();
-        if (Inodes.count (Dev) && Inodes [Dev].count(INode)) {
+    InodeInfo *INode = NULL;
+    if (u32 INodeNum = LF->INode()) {
+        u32 Dev = LF->Dev();
+
+        InodesMtx.lock();
+
+        if (Inodes.count (Dev) && Inodes [Dev].count(INodeNum)) {
             // this dev/inode combo has been seen before
+            INode = Inodes [Dev][INodeNum];
+
+            InodesMtx.unlock();
 
             // create the link
-            ArchFileCreate *PrevAF = Inodes [Dev][INode];
-            AF->CreateLink (PrevAF);
+            assert (INode);
+            function <void()> Task = [=](){AF->CreateLink(INode);};
+            ThreadPool.Execute (Task, 0);
 
             // that's all
             return;
         } else {
             // remember the first instance of this dev/inode combo
-            Inodes [Dev][INode] = AF;
-            KeepAF = true;
+            INode = new InodeInfo;
+            INode->ListEntry.Name  = Name;
+            INode->Complete        = false;
+            Inodes [Dev][INodeNum] = INode;
         }
+
+        InodesMtx.unlock();
     }
 
     // create the archived file
-    AF->Create(KeepAF);
-
-    // remember kept arch files for deletion when we're done
-    if (KeepAF)
-        KeptAFs.push_back(AF);
+    function <void()> Task = [=](){AF->Create(INode);};
+    ThreadPool.Execute (Task, 0);
 
     // create sub dirs/files
     if (Recurse)
-        for (auto &Sub : Subs)
-            DoCreate (Sub);
+        for (auto &Sub : Subs) {
+            function <void()> Task = [=](){DoCreate (Sub);};
+            ThreadPool.Execute (Task);
+        }
 }

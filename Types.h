@@ -75,11 +75,11 @@ class DirAttribRec {
 
 // holds information for each inode to allow
 // possible hard-link processing during archive creation
-class InodeInfo {
-    FileListEntry First;    // first file list entry for the inode
-    bool          Complete; // true when the first file list has been archived and First is valid
-    vecstr        Links;    // list of additional names wainting to be linked
-    mutex         Mtx;      // synchronizes access to Links
+struct InodeInfo {
+    FileListEntry ListEntry; // first file list entry for the inode
+    bool          Complete;  // true when the first file has been archived and ListEntry is valid
+    vecstr        Links;     // list of additional names wainting to be linked
+    mutex         Mtx;       // synchronizes access to Complete and Links
 };
 
 #endif // TYPES_H

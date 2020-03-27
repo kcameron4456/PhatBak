@@ -375,8 +375,6 @@ ArchFileCreate::ArchFileCreate (ArchiveCreate *arch, LiveFile *lf) : ArchFile (a
     Arch   = arch;
     LF     = lf;
     Name   = LF->Name;
-
-    Mtx.lock();
 }
 
 ArchFileCreate::~ArchFileCreate () {
@@ -429,7 +427,7 @@ void ArchFileCreate::HashAndCompressJob (const string &ChunkData
     HACR->BL.PostIdle();
 }
 
-void ArchFileCreate::CreateJob (bool KeepAF) {
+void ArchFileCreate::Create (InodeInfo *Inode) {
     // fill in the file list entry
     ListEntry.Name       = Name;
     ListEntry.Stats      = LF->Stats;
@@ -577,35 +575,41 @@ void ArchFileCreate::CreateJob (bool KeepAF) {
     // update file list
     Arch->PushListEntry (ListEntry);
 
-    // flag completion
-    Mtx.unlock();
+    // update info for hard links
+    if (Inode) {
+        Inode->Mtx.lock();
 
-    // delete this if we know it won't be needed again
-    if (!KeepAF)
-        delete this;
-}
+        Inode->ListEntry = ListEntry;
+        Inode->Complete  = true;
 
-void ArchFileCreate::Create (bool Keep) {
-    function <void()> Task = [=](){CreateJob (Keep);};
-    ThreadPool.Execute (Task);
+        // handle waiting links
+        for (string &Link : Inode->Links) {
+            ListEntry.Name = Link;
+            Arch->PushListEntry (ListEntry);
+        }
+        Inode->Links.clear();
+
+        Inode->Mtx.unlock();
+    }
+
+    // finished with this file
+    delete this;
 }
 
 // link to previously archived file
-void ArchFileCreate::CreateLink (ArchFileCreate *Prev) {
-    // wait for processing of original file to complete
-    Prev->Mtx.lock();
+void ArchFileCreate::CreateLink (InodeInfo *First) {
+    First->Mtx.lock();
+    if (First->Complete) {
+        First->Mtx.unlock();
+        FileListEntry ListEntry = First->ListEntry;
+        ListEntry.Name = Name;
+        Arch->PushListEntry (ListEntry);
+    } else {
+        First->Links.push_back (Name);
+        First->Mtx.unlock();
+    }
 
-    ListEntry      = Prev->ListEntry;
-    ListEntry.Name = Name;
-    Arch->PushListEntry (ListEntry);
-
-    // release prev file
-    Prev->Mtx.unlock();
-
-    // release this file (even though nobody will be waiting for this one)
-    Mtx.unlock();
-
-    // this archive file won't be used again
+    // finished with this
     delete this;
 }
 

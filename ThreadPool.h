@@ -23,10 +23,10 @@ class JobCtrl {
     private:
 
     public:
-    int               Idx;         // sequential count to assist debug
-    thread           *Thr;         // pointer to thread control structure 
-    BusyLock          Busy;        // tells worker when there's work to be done
-    unsigned          ParentDepth; // thread call depth of requester
+    int               Idx;          // sequential count to assist debug
+    thread           *Thr;          // pointer to thread control structure 
+    BusyLock          Busy;         // tells worker when there's work to be done
+    unsigned          ParentDepth;  // thread call depth of requester
 
     // generic self-contained task
     function <void()> *Task;
@@ -57,6 +57,8 @@ class ThreadPool_t {
     vector <JobCtrl *>     Avail; // set of Worker threads which are ready to perform work
     recursive_mutex        Mtx;   // mutex to protect access to the all and avail queues
     condition_variable_any CV;    // condition variable for alloc/release
+    u32                    AllocWaiting; // how many threads are trying to allocate a new thread
+                                         // for avoiding deadlock
 
     // for helping debug with gdb
     static const int JobArraySize = 500;

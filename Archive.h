@@ -97,7 +97,6 @@ class ArchFile {
     Archive           *Arch;
     string             Name;
     FileListEntry      ListEntry;
-    mutex              Mtx;
     string             LinkTarget;
     vector <ChunkInfo> Chunks;
 
@@ -124,9 +123,8 @@ class ArchFileCreate : public ArchFile {
      ArchFileCreate (ArchiveCreate *arch, LiveFile *lf);
     ~ArchFileCreate ();
 
-    void Create     (bool KeepAF);          // add file to archive
-    void CreateJob  (bool KeepAF);          // add file to archive (runs within thread)
-    void CreateLink (ArchFileCreate *Prev); // link to previously archived file
+    void Create     (InodeInfo *Inode); // add file to archive
+    void CreateLink (InodeInfo *First); // link to previously archived file
     void HashAndCompressJob (const string &ChunkData
                             ,const ChunkInfo *BaseChunkInfo, const BlockList *BaseBlockList
                             ,HashAndCompressReturn *HACR);
