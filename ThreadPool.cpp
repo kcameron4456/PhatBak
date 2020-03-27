@@ -107,6 +107,7 @@ JobCtrl * ThreadPool_t::AllocThread (bool Wait) {
     DualLock dl (&Mtx, &BusyLocksMtx);
 
     AllocWaiting += Wait;
+    CV.notify_all();  // tell others about AllocWaiting update
 
     // make sure we release the locks when we exit
     lock_guard <recursive_mutex> lock1 (Mtx         , std::adopt_lock);
@@ -121,24 +122,17 @@ JobCtrl * ThreadPool_t::AllocThread (bool Wait) {
                             || (BusyLocksWaiting + AllocWaiting) >= All.size()
                             ;
                        });
-    if (Avail.empty()) {
-        if (!Wait) {
-            return NULL;
-        } else {
-            // create a new thread to avoid deadlock
-fprintf (stderr, "Adding an extra thread\n");
-            AddThreads (1);
-        }
+
+    JobCtrl *Thr = NULL;
+    if (!Avail.empty()) {
+        // grab a thread
+        JobCtrl *Thr = Avail.back();
+        Avail.pop_back();
+
+        AllocWaiting -= Wait;
     }
 
-    // grab a thread
-    JobCtrl *rval = Avail.back();
-    Avail.pop_back();
-
-    AllocWaiting -= Wait;
-
-    // return the thread pointer
-    return rval;
+    return Thr;
 }
 
 void ThreadPool_t::ReleaseThread (JobCtrl *Job) {

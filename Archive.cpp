@@ -609,7 +609,7 @@ void ArchFileCreate::CreateLink (InodeInfo *First) {
         First->Mtx.unlock();
     }
 
-    // finished with this
+    // this file is done
     delete this;
 }
 
