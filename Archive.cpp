@@ -96,7 +96,7 @@ ArchiveRead::ArchiveRead (RepoInfo *repo, const string &name) : Archive (repo, n
     if (!fs::exists (IDPath))
         ERROR ("%s doesn't exist\n", IDPath.c_str());
 
-    fstream FL = OpenReadStream (ListPath);
+    ListFile = OpenReadStream (ListPath);
 }
 
 ArchiveRead::~ArchiveRead() {
@@ -446,8 +446,9 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveBase *b
     OptFile.close();
 
     // create new archive subdirs
-    for (auto SubDir : {ChunkDirPath, FinfoDirPath, ExtraDirPath})
-        CreateDir (SubDir);
+    CreateDir (FinfoDirPath);
+    CreateDir (ChunkDirPath);
+    CreateDir (ExtraDirPath);
 
     // if using a base arch, preload finfo and chunk allocators based on previous files
     if (ArchBase) {
@@ -458,6 +459,9 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveBase *b
 
         ThreadPool.WaitIdle();
     }
+
+    // prepare the file list for write
+    ListFile = OpenWriteStream (ListPath);
 }
 
 ArchiveCreate::~ArchiveCreate () {
@@ -471,7 +475,7 @@ ArchiveCreate::~ArchiveCreate () {
     int Secs = difftime (EndTime, O.StartTime);
     LogFile << "Elasped Time: " << Secs << " seconds\n";
 
-    LogFile .close();
+    LogFile.close();
 }
 
 void ArchiveCreate::PushListEntry (const FileListEntry &ListEntry) {
