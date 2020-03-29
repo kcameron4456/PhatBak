@@ -238,12 +238,8 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     }
     string RepoArchName = argv[argidx++];
     vector <string> Parts = Utils::SplitStr (RepoArchName, "::");
-    if (!(Parts.size() == 2) &&
-        !(Parts.size() == 1 && Operation == DoList)
-       ) {
-        printf ("Unrecognized Repo::Archive format: %s\n", RepoArchName.c_str());
+    if (Parts.size() > 2)
         PrintHelp(1);
-    }
     RepoDirName = Parts[0];
     if (Parts.size() >= 2)
         ArchDirName = Parts[1];

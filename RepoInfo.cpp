@@ -18,18 +18,40 @@ RepoInfo::RepoInfo (const string &name) {
         THROW_PBEXCEPTION_FMT ("Repo Indentifier (%s) not found", RepoId.c_str());
 
     // check for previous base archive 
-    LatestArchName = "";
-    if (O.BaseArchive == "") {
-        string LatestArchLink = Name + "/LatestArchive";
-        if (0 && fs::exists (LatestArchLink + "/" PHATBAK_ARCH_ID)) // TBD: figure out another way
-            LatestArchName = fs::read_symlink (LatestArchLink);
-    } else {
-        string TryName = O.BaseArchive;
-        if (fs::exists (Name + "/" + TryName + "/" PHATBAK_ARCH_ID))
-            LatestArchName = TryName;
-        else
-            THROW_PBEXCEPTION_FMT ("Base archive (%s) doesn't exist", O.BaseArchive.c_str());
+    if (!O.Rebase) {
+        vecstr SubDirs, SubFiles;
+        Utils::SlurpDir (Name, SubDirs, SubFiles);
+
+        // find most recent standard archive
+        LatestArchName = "";
+        for (auto SubDir : SubDirs) {
+            if (!fs::exists (SubDir + "/" + PHATBAK_ARCH_ID))
+                continue;
+            static string Pattern = "XXXX_XX_XX_XXXX_XX";
+            if (SubDir.size() != Pattern.size())
+                continue;
+            string TempSubDir = SubDir;
+            for (size_t i = 0; i < TempSubDir.size(); i++)
+                if (TempSubDir[i] >= '0' && TempSubDir[i] <= '9')
+                    TempSubDir[i] = 'X';
+            if (TempSubDir != Pattern)
+                continue;
+            if (SubDir > LatestArchName)
+                LatestArchName = SubDir;
+        }
     }
+    //LatestArchName = "";
+    //if (O.BaseArchive == "") {
+    //    string LatestArchLink = Name + "/LatestArchive";
+    //    if (0 && fs::exists (LatestArchLink + "/" PHATBAK_ARCH_ID)) // TBD: figure out another way
+    //        LatestArchName = fs::read_symlink (LatestArchLink);
+    //} else {
+    //    string TryName = O.BaseArchive;
+    //    if (fs::exists (Name + "/" + TryName + "/" PHATBAK_ARCH_ID))
+    //        LatestArchName = TryName;
+    //    else
+    //        THROW_PBEXCEPTION_FMT ("Base archive (%s) doesn't exist", O.BaseArchive.c_str());
+    //}
 }
 
 void RepoInfo::Finish (const string &ArchName) {

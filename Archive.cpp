@@ -14,16 +14,16 @@ namespace fs = std::filesystem;
 //////////////////////////////////////////////////////////////////////
 Archive::Archive(RepoInfo *repo, const string &name) {
     DBGCTOR;
-    Repo         = repo;
-    Name         = name;
-    ArchDirPath  = Repo->Name + "/" + Name;
-    IDPath       = ArchDirPath + "/" + PHATBAK_ARCH_ID;
-    ListPath     = ArchDirPath + "/List";
-    LogPath      = ArchDirPath + "/PhatBak.log";
-    OptionsPath  = ArchDirPath + "/Options";
-    FinfoDirPath = ArchDirPath + "/FInfo";
-    ChunkDirPath = ArchDirPath + "/Chunks";
-    ExtraDirPath = ArchDirPath + "/Extra";
+    Repo           = repo;
+    Name           = name;
+    ArchDirPath    = Repo->Name + "/" + Name;
+    IDPath         = ArchDirPath + "/" + PHATBAK_ARCH_ID;
+    ListPath       = ArchDirPath + "/List";
+    LogPath        = ArchDirPath + "/PhatBak.log";
+    OptionsPath    = ArchDirPath + "/Options";
+    FinfoDirPath   = ArchDirPath + "/FInfo";
+    ChunkDirPath   = ArchDirPath + "/Chunks";
+    ExtraDirPath   = ArchDirPath + "/Extra";
 
     // initialize block allocators
     FInfoBlocks = new BlockList (FinfoDirPath);
@@ -94,7 +94,9 @@ ArchiveRead::ArchiveRead (RepoInfo *repo, const string &name) : Archive (repo, n
     ParseOptions ();
 
     if (!fs::exists (IDPath))
-        THROW_PBEXCEPTION_FMT ("%s doesn't exist");
+        ERROR ("%s doesn't exist\n", IDPath.c_str());
+
+    fstream FL = OpenReadStream (ListPath);
 }
 
 ArchiveRead::~ArchiveRead() {
@@ -202,9 +204,6 @@ void ArchiveRead::DoExtractJob (const string &ListLine, u64 LineNo) {
 }
 
 void ArchiveRead::DoExtract () {
-    // open the file list
-    auto ListFile = OpenReadStream (ListPath);
-
     // parse and extract all the entries in the list
     u64 LineNo = 0;
     string ListLine;
@@ -228,22 +227,18 @@ void ArchiveRead::DoExtract () {
         SetFileAcls (DirAttrib.Name, DirAttrib.Mode, DirAttrib.Acl);
         SetModTime  (DirAttrib.Name, NsToTimeSpec(DirAttrib.MTime));
     }
-
-    ListFile.close();
 }
 
 void ArchiveRead::DoList () {
     // create a list of files with first-order info
-    fstream FL = OpenReadStream (ListPath);
     string Line;
     u64 LineCount = 1;
-    while (getline (FL, Line)) {
+    while (getline (ListFile, Line)) {
         FileListEntry FLE = ParseListLine (Line, LineCount);
         printf ("%s\n", FLE.Name.c_str());
 
         LineCount ++;
     }
-    FL.close();
 }
 
 static void FindBlockFiles (const string &Dir, const string &TopDir, map <i64, bool> &BlockMap) {
@@ -273,10 +268,9 @@ void ArchiveRead::DoTest () {
     FindBlockFiles (ChunkDirPath, ChunkDirPath, ChunksMap);
 
     // test all files in the archive
-    fstream FL = OpenReadStream (ListPath);
     string Line;
     u64 LineCount = 1;
-    while (getline (FL, Line)) {
+    while (getline (ListFile, Line)) {
         FileListEntry ListEntry = ParseListLine (Line, LineCount);
         if (O.ShowFiles)
             printf ("%s\n", ListEntry.Name.c_str());
@@ -320,8 +314,6 @@ void ArchiveRead::DoTest () {
         ERROR ("Unused FInfo block found: %ld\n", Itr.first);
     for (auto Itr : ChunksMap)
         ERROR ("Unused Chunk block found: %ld\n", Itr.first);
-
-    FL.close();
 }
 
 void ArchiveRead::DoCompareJob (const FileListEntry &ListEntry) {
@@ -390,10 +382,9 @@ void ArchiveRead::DoCompare () {
         CanFileArgs.push_back (CanonizeFileName (FileArg, O.CWD));
 
     // compare all files in the archive
-    fstream FL = OpenReadStream (ListPath);
     string Line;
     u64 LineCount = 1;
-    while (getline (FL, Line)) {
+    while (getline (ListFile, Line)) {
         FileListEntry ListEntry = ParseListLine (Line, LineCount);
 
         // filter against file args used during the archive creation
@@ -412,7 +403,6 @@ void ArchiveRead::DoCompare () {
         };
         ThreadPool.Execute (Task, 0);
     };
-    FL.close();
 
     ThreadPool.WaitIdle();
 }
@@ -420,15 +410,13 @@ void ArchiveRead::DoCompare () {
 //////////////////////////////////////////////////////////////////////
 ArchiveBase::ArchiveBase (RepoInfo *repo, const string &name) : ArchiveRead (repo, name) {
     // create a list of files with first-order info
-    fstream FL = OpenReadStream (ListPath);
     string Line;
     u64 LineCount = 1;
-    while (getline (FL, Line)) {
+    while (getline (ListFile, Line)) {
         FileListEntry FLE = ParseListLine (Line, LineCount);
         FileMap [FLE.Name] = FLE;
         LineCount ++;
     }
-    FL.close();
 }
 
 ArchiveBase::~ArchiveBase () {
@@ -470,9 +458,6 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveBase *b
 
         ThreadPool.WaitIdle();
     }
-
-    // start the file list
-    ListFile = OpenWriteStream (ListPath);
 }
 
 ArchiveCreate::~ArchiveCreate () {
@@ -487,7 +472,6 @@ ArchiveCreate::~ArchiveCreate () {
     LogFile << "Elasped Time: " << Secs << " seconds\n";
 
     LogFile .close();
-    ListFile.close();
 }
 
 void ArchiveCreate::PushListEntry (const FileListEntry &ListEntry) {

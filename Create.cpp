@@ -14,7 +14,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 Create::Create () {
-    Repo = new RepoInfo   (O.RepoDirName);
+    Repo = new RepoInfo (O.RepoDirName);
 
     // see if we want to base the new archive to a previous one
     bool Rebase = O.Rebase || Repo->LatestArchName == "" || Repo->LatestArchName == O.ArchDirName;
