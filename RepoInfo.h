@@ -10,7 +10,7 @@ using namespace std;
 class RepoInfo {
     public:
     string Name;
-    string BaseArchName;
+    string LatestArchName;
 
     RepoInfo (const string &name);
     void Finish (const string &ArchName);

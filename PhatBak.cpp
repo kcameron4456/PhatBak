@@ -39,7 +39,7 @@ int main (int argc, const char **argv) {
             // archive name defaults to latest found by RepoInfo
             string ArchName = O.ArchDirName;
             if (ArchName == "")
-                ArchName = Repo->BaseArchName;
+                ArchName = Repo->LatestArchName;
             assert (ArchName != "");
             cout << "Testing integrity of " << Repo->Name << "::" << ArchName << endl;
 
@@ -54,7 +54,7 @@ int main (int argc, const char **argv) {
             // archive name defaults to latest found by RepoInfo
             string ArchName = O.ArchDirName;
             if (ArchName == "")
-                ArchName = Repo->BaseArchName;
+                ArchName = Repo->LatestArchName;
             assert (ArchName != "");
             cout << "Comparing " << Repo->Name << "::" << ArchName << " against existing files" << endl;
 
@@ -62,6 +62,10 @@ int main (int argc, const char **argv) {
             Arch->DoCompare();
 
             delete Arch;
+            delete Repo;
+        } else if (O.Operation == Opts::DoShowLatest) {
+            auto Repo = new RepoInfo (O.RepoDirName);
+            cout << Repo->LatestArchName << endl;
             delete Repo;
         } else {
             THROW_PBEXCEPTION ("Operation %d not supported", O.Operation);

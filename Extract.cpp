@@ -11,7 +11,7 @@ Extract::Extract () {
     // archive name defaults to latest found by RepoInfo
     string ArchName = O.ArchDirName;
     if (ArchName == "")
-        ArchName = Repo->BaseArchName;
+        ArchName = Repo->LatestArchName;
     assert (ArchName != "");
 
     cout << "Extracting from " << Repo->Name << "::" << ArchName << endl;

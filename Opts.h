@@ -42,6 +42,7 @@ class Opts {
     enum      {DoUndef  , DoCreate,
                DoExtract, DoTest,
                DoList   , DoCompare,
+               DoShowLatest
               } Operation; // what to do
 
     Opts ();
@@ -49,13 +50,14 @@ class Opts {
     void ParseCmdLine (const int argc, const char *argv[]);
 
     const char *OpText () {
-        return Operation == DoUndef   ? "DoUndef"   :
-               Operation == DoCreate  ? "DoCreate"  :
-               Operation == DoExtract ? "DoExtract" :
-               Operation == DoTest    ? "DoTest"    :
-               Operation == DoList    ? "DoList"    :
-               Operation == DoCompare ? "DoCompare" :
-                                        "Illegal"   ;
+        return Operation == DoUndef      ? "Undef"   :
+               Operation == DoCreate     ? "Create"  :
+               Operation == DoExtract    ? "Extract" :
+               Operation == DoTest       ? "Test"    :
+               Operation == DoList       ? "List"    :
+               Operation == DoCompare    ? "Compare" :
+               Operation == DoShowLatest ? "ShowLatest" :
+                                           "Illegal" ;
     }
 
     void   Print      (fstream &F);

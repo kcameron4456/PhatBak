@@ -23,15 +23,15 @@ Create::Create () {
     assert (ArchName != "");
 
     // see if we want to base the new archive to a previous one
-    bool Rebase = O.Rebase || Repo->BaseArchName == "";
+    bool Rebase = O.Rebase || Repo->LatestArchName == "";
     ArchBase = NULL;
     if (Rebase) {
         printf ("Creating new base archive: %s::%s\n", Repo->Name.c_str(), ArchName.c_str());
     } else {
         printf ("Creating archive: %s::%s using base archive: %s::%s\n",
-                Repo->Name.c_str(), ArchName.c_str(), Repo->Name.c_str(), Repo->BaseArchName.c_str());
+                Repo->Name.c_str(), ArchName.c_str(), Repo->Name.c_str(), Repo->LatestArchName.c_str());
 
-        ArchBase = new ArchiveBase (Repo, Repo->BaseArchName);
+        ArchBase = new ArchiveBase (Repo, Repo->LatestArchName);
     }
 
     Arch = new ArchiveCreate (Repo, ArchName, ArchBase);

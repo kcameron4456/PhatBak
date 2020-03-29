@@ -18,7 +18,7 @@ RepoInfo::RepoInfo (const string &name) {
         ERROR ("Repo Indentifier (%s) not found\n", RepoId.c_str());
 
     // check for previous base archive 
-    BaseArchName = "";
+    LatestArchName = "";
     if (!O.Rebase) {
         vecstr SubDirs, SubFiles;
         Utils::SlurpDir (Name, SubDirs, SubFiles);
@@ -36,8 +36,8 @@ RepoInfo::RepoInfo (const string &name) {
                     TempSubDir[i] = 'X';
             if (TempSubDir != Pattern)
                 continue;
-            if (SubDir > BaseArchName)
-                BaseArchName = SubDir;
+            if (SubDir > LatestArchName)
+                LatestArchName = SubDir;
         }
     }
 }
