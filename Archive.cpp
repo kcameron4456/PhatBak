@@ -453,9 +453,8 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveBase *b
     // if using a base arch, preload finfo and chunk allocators based on previous files
     if (ArchBase) {
         // initialize the finfo and chunk blocklist allocator based on base files
-
-        FInfoBlocks->ReverseAlloc(ArchBase->FInfoBlocks->TopDir);
-        ChunkBlocks->ReverseAlloc(ArchBase->ChunkBlocks->TopDir);
+        FInfoBlocks->ReverseAlloc(ArchBase->FinfoDirPath);
+        ChunkBlocks->ReverseAlloc(ArchBase->ChunkDirPath);
 
         ThreadPool.WaitIdle();
     }
