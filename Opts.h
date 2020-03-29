@@ -20,7 +20,8 @@ class Opts {
     int       VersionMajor;     // tartar program version
     int       VersionMinor;     // tartar program version
     string    CmdLine;          // Command line used to invoke tartar
-    time_t    StartTime;        // Time this program started
+    u64       StartTime;        // Time this program started (epoch ns)
+    string    StartTimeTxt;     // Time this program started (text version)
     vecstr    FileArgs;         // List of file names to be archived or extracted
     string    CWD;              // Current working dir (maybe needed to give context to FileArgs)
     string    RepoDirName;      // Repository dir for archives

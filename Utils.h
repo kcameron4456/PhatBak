@@ -63,7 +63,7 @@ namespace Utils {
     void SlurpDir (const string &Dir, vecstr &SubDirs, vecstr &SubFiles);
 
     // touch a file (create or update modification time)
-    void Touch (const string &Name);
+    void Touch (const string Name);
 
     // link a file to a new name
     void Link (const string &Name, const string &Target);
@@ -87,7 +87,10 @@ namespace Utils {
     string TimeSpecToText (const timespec &T);
 
     // convert epoch nanoseconds to text time
-    string NsToText (const timespec &T);
+    string NsToText (u64 ns);
+
+    // get current time in ns
+    u64 TimeNowNs ();
 
     // create a unix domain socket
     void CreateSocket (const string &Name);

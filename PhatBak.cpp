@@ -35,14 +35,32 @@ int main (int argc, const char **argv) {
             delete Repo;
         } else if (O.Operation == Opts::DoTest) {
             auto Repo = new RepoInfo (O.RepoDirName);
-            auto Arch = new ArchiveRead (Repo, O.ArchDirName);
+
+            // archive name defaults to latest found by RepoInfo
+            string ArchName = O.ArchDirName;
+            if (ArchName == "")
+                ArchName = Repo->BaseArchName;
+            assert (ArchName != "");
+            cout << "Testing integrity of " << Repo->Name << "::" << ArchName << endl;
+
+            auto Arch = new ArchiveRead (Repo, ArchName);
             Arch->DoTest();
+
             delete Arch;
             delete Repo;
         } else if (O.Operation == Opts::DoCompare) {
             auto Repo = new RepoInfo (O.RepoDirName);
-            auto Arch = new ArchiveRead (Repo, O.ArchDirName);
+
+            // archive name defaults to latest found by RepoInfo
+            string ArchName = O.ArchDirName;
+            if (ArchName == "")
+                ArchName = Repo->BaseArchName;
+            assert (ArchName != "");
+            cout << "Comparing " << Repo->Name << "::" << ArchName << " against existing files" << endl;
+
+            auto Arch = new ArchiveRead (Repo, ArchName);
             Arch->DoCompare();
+
             delete Arch;
             delete Repo;
         } else {

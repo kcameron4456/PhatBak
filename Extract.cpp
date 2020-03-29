@@ -6,8 +6,17 @@
 namespace fs = std::filesystem;
 
 Extract::Extract () {
-    Repo = new RepoInfo          (O.RepoDirName);
-    Arch = new ArchiveRead (Repo, O.ArchDirName);
+    Repo = new RepoInfo (O.RepoDirName);
+
+    // archive name defaults to latest found by RepoInfo
+    string ArchName = O.ArchDirName;
+    if (ArchName == "")
+        ArchName = Repo->BaseArchName;
+    assert (ArchName != "");
+
+    cout << "Extracting from " << Repo->Name << "::" << ArchName << endl;
+
+    Arch = new ArchiveRead (Repo, ArchName);
 }
 
 Extract::~Extract () {

@@ -18,14 +18,14 @@ RepoInfo::RepoInfo (const string &name) {
         ERROR ("Repo Indentifier (%s) not found\n", RepoId.c_str());
 
     // check for previous base archive 
-    LatestArchName = "";
+    BaseArchName = "";
     if (!O.Rebase) {
         vecstr SubDirs, SubFiles;
         Utils::SlurpDir (Name, SubDirs, SubFiles);
 
         // find most recent standard archive (i.e. name is time in standaridized format)
         for (auto SubDir : SubDirs) {
-            if (!fs::exists (SubDir + "/" + PHATBAK_ARCH_ID))
+            if (!fs::exists (Name + "/" + SubDir + "/" + PHATBAK_ARCH_ID))
                 continue;
             static const string Pattern = "XXXX_XX_XX_XXXX_XX";
             if (SubDir.size() != Pattern.size())
@@ -36,8 +36,8 @@ RepoInfo::RepoInfo (const string &name) {
                     TempSubDir[i] = 'X';
             if (TempSubDir != Pattern)
                 continue;
-            if (SubDir > LatestArchName)
-                LatestArchName = SubDir;
+            if (SubDir > BaseArchName)
+                BaseArchName = SubDir;
         }
     }
 }

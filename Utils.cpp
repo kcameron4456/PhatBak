@@ -12,6 +12,7 @@
 #include <sys/acl.h>
 #include <chrono>
 namespace fs = std::filesystem;
+using namespace chrono;
 
 namespace Utils {
     vecstr SplitStr (string Src, const string &Pat) {
@@ -212,7 +213,7 @@ namespace Utils {
         }
     }
 
-    void Touch (const string &Name) {
+    void Touch (const string Name) {
         fstream Strm (Name.c_str(), fstream::out | fstream::app);
         if (Strm.fail())
             THROW_PBEXCEPTION_IO ("Can't open %s for touch", Name.c_str());
@@ -278,8 +279,6 @@ namespace Utils {
 
     // convert unix timespec to human readable text
     string TimeSpecToText (const timespec &T) {
-        using namespace chrono;
-
         // convert ns to duration
         u64 ns = TimeSpecToNs (T);
         auto dur = nanoseconds(ns);
@@ -287,15 +286,27 @@ namespace Utils {
         // convert to text
         system_clock::time_point Time (dur);
         time_t Time_t = system_clock::to_time_t(Time);
-        string Result(100, '\0');
+        string Result(30, '\0');
         strftime (Result.data(), Result.size(), "%Y_%m_%d_%H%M_%S", std::localtime(&Time_t));
 
-        return Result;
+        return Result.c_str();
     }
 
     // convert epoch nanoseconds to text time
     string TimeSpecToText (u64 &ns) {
         return TimeSpecToText (NsToTimeSpec(ns));
+    }
+
+    // convert epoch nanoseconds to text time
+    string NsToText (u64 ns) {
+        return TimeSpecToText (NsToTimeSpec (ns));
+    }
+
+    // get current time in ns
+    u64 TimeNowNs () {
+        system_clock::time_point now = system_clock::now();
+        u64 ns = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+        return ns;
     }
 
     // create a socket

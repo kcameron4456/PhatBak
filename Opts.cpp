@@ -267,7 +267,8 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
 }
 
 Opts::Opts () {
-    StartTime = time(NULL);
+    StartTime    = Utils::TimeNowNs ();
+    StartTimeTxt = Utils::NsToText (StartTime);
 }
 
 void Opts::Print (fstream &F) {

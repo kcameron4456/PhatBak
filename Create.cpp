@@ -16,19 +16,25 @@ namespace fs = std::filesystem;
 Create::Create () {
     Repo = new RepoInfo (O.RepoDirName);
 
+    // archive name defaults to time
+    string ArchName = O.ArchDirName;
+    if (ArchName == "")
+        ArchName = O.StartTimeTxt;
+    assert (ArchName != "");
+
     // see if we want to base the new archive to a previous one
-    bool Rebase = O.Rebase || Repo->LatestArchName == "" || Repo->LatestArchName == O.ArchDirName;
+    bool Rebase = O.Rebase || Repo->BaseArchName == "";
     ArchBase = NULL;
     if (Rebase) {
-        printf ("Creating new base archive: %s::%s\n", Repo->Name.c_str(), O.ArchDirName.c_str());
+        printf ("Creating new base archive: %s::%s\n", Repo->Name.c_str(), ArchName.c_str());
     } else {
         printf ("Creating archive: %s::%s using base archive: %s::%s\n",
-                Repo->Name.c_str(), O.ArchDirName.c_str(), Repo->Name.c_str(), Repo->LatestArchName.c_str());
+                Repo->Name.c_str(), ArchName.c_str(), Repo->Name.c_str(), Repo->BaseArchName.c_str());
 
-        ArchBase = new ArchiveBase (Repo, Repo->LatestArchName);
+        ArchBase = new ArchiveBase (Repo, Repo->BaseArchName);
     }
 
-    Arch = new ArchiveCreate (Repo, O.ArchDirName, ArchBase);
+    Arch = new ArchiveCreate (Repo, ArchName, ArchBase);
 }
 
 Create::~Create () {

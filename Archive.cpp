@@ -16,6 +16,9 @@ Archive::Archive(RepoInfo *repo, const string &name) {
     DBGCTOR;
     Repo           = repo;
     Name           = name;
+
+    assert (Name != "");
+
     ArchDirPath    = Repo->Name  + "/" + Name;
     IDPath         = ArchDirPath + "/" + PHATBAK_ARCH_ID;
     ListPath       = ArchDirPath + "/List";
@@ -92,11 +95,8 @@ FileListEntry Archive::ParseListLine (const string &ListLine, u64 LineNo) {
 ArchiveRead::ArchiveRead (RepoInfo *repo, const string &name) : Archive (repo, name) {
     DBGCTOR;
 
-    if (Name == "")
-        // default to latest archive
-        Name = Repo->LatestArchName;
-    if (Name == "")
-        ERROR ("No archive name given and no existing archive found\n");
+    if (!fs::is_directory (ArchDirPath))
+        ERROR ("Archive %s is not a directory\n", ArchDirPath.c_str());
 
     // see if it's really an archive
     if (!fs::exists (IDPath))
@@ -448,7 +448,7 @@ ArchiveCreate::ArchiveCreate (RepoInfo *repo, const string &name, ArchiveBase *b
 
     // create the log file
     LogFile = OpenWriteStream (LogPath);
-    LogFile << "Backup Started At: " << asctime(localtime(&O.StartTime)) << endl;
+    LogFile << "Backup Started At: " << &O.StartTimeTxt << endl;
 
     // create Options file
     fstream OptFile = OpenWriteStream (OptionsPath);
