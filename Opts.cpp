@@ -209,6 +209,7 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PARSE_MinusFlg ("-t"                 , TESTOP, Operation  , DoTest      ,)
         PARSE_MinusFlg ("-p"                 , TESTOP, Operation  , DoCompare   ,)
         PARSE_MinusFlg ("--latest"           , TESTOP, Operation  , DoShowLatest,)
+        PARSE_MinusFlg ("--init"             , TESTOP, Operation  , DoInit,)
         PARSE_MinusFlg ("-v"                ,, ShowFiles  , 1,)
         PARSE_MinusFlg ("-D"                ,, ShowFiles=ArchDiag, 1, )
         PARSE_MinusVal ("-T"                ,"%d", &NumThreads,)

@@ -8,14 +8,23 @@ namespace fs = std::filesystem;
 
 RepoInfo::RepoInfo (const string &name) {
     Name = name;
-    if (!fs::is_directory (Name))
-        ERROR ("Repo dir (%s) not found\n", Name.c_str());
+    if (!fs::is_directory (Name)) {
+        if (O.Operation == O.DoInit) {
+            Utils::CreateDir (Name);
+        } else {
+            ERROR ("Repo dir (%s) not found\n", Name.c_str());
+        }
+    }
 
     // check for repo consistancy
     string RepoId = Name + "/" + PHATBAK_REPO_ID;
-    if (!fs::exists (RepoId))
-        // TBD: optionally create repo if it doesn't exist
-        ERROR ("Repo Indentifier (%s) not found\n", RepoId.c_str());
+    if (!fs::exists (RepoId)) {
+        if (O.Operation == O.DoInit) {
+            Utils::Touch (RepoId);
+        } else {
+            ERROR ("Repo Indentifier (%s) not found\n", RepoId.c_str());
+        }
+    }
 
     // check for previous base archive 
     LatestArchName = "";
@@ -43,12 +52,6 @@ RepoInfo::RepoInfo (const string &name) {
 }
 
 void RepoInfo::Finish (const string &ArchName) {
-    //string LinkName = Name + "/LatestArchive";
-    //error_code ec;
-    //fs::remove                   (          LinkName, ec);
-    //fs::create_directory_symlink (ArchName, LinkName, ec);
-    //if (ec)
-    //    THROW_PBEXCEPTION_IO ("Can't create symlink: %s", LinkName.c_str());
 }
 
 void RepoInfo::DoList () {
