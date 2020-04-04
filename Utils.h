@@ -19,11 +19,14 @@ namespace Utils {
     void   TrimStr (string *Str);
     string TrimStr (string  Str);
 
-    // create full path name to file without extraneous relatime paths 
-    string CanonizeFileName (const string &RawName, const string &CWD = "");
-
     // join multiple strings into one with optional separater
     string JoinStrs (const vecstr &Parts, const string &Sep = "");
+
+    // create full path name to file without extraneous relatime paths (don't prepend CWD)
+    string CanonizeFileNameNoCWD (const string &RawName);
+
+    // create full path name to file without extraneous relatime paths 
+    string CanonizeFileName (const string &RawName, const string &CWD = "");
 
     // open file stream for input
     fstream OpenReadStream (const string &Name);

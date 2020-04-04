@@ -43,27 +43,27 @@ namespace Utils {
         return Str;
     }
 
-    string CanonizeFileName (const string &RawName, const string &CWD) {
-        string FullName;
-
-        // prepend current directory to name, if needed
-        if (RawName[0] == '/') {
-            FullName = RawName;
-        } else {
-            string CwdStr;
-            if (CWD.size()==0) {
-                char cwd [4000];
-                if (getcwd (cwd, sizeof(cwd)) == NULL)
-                    THROW_PBEXCEPTION ("getcwd failed: ");
-                CwdStr = string (cwd);
-            } else {
-                CwdStr = CWD;
-            }
-            FullName = CwdStr + "/" + RawName;
+    string JoinStrs (const vecstr &Parts, const string &Sep) {
+        string Joined;
+        bool first = 1;
+        for (auto &Part : Parts) {
+            if (!first)
+                Joined += Sep;
+            Joined += Part;
+            first = false;
         }
+        return Joined;
+    }
+
+    string CanonizeFileNameNoCWD (const string &RawName) {
+        if (RawName == "")
+            return "";
+
+        // remember if the name starts with /
+        bool abs = RawName[0] == '/';
 
         // tokenize by spliting on "/"
-        vecstr Toks = SplitStr (FullName, "/");
+        vecstr Toks = SplitStr (RawName, "/");
 
         // discard all instances of "", ".", and "dir/.."
         for (auto itr = Toks.begin(); itr < Toks.end(); itr++) {
@@ -83,20 +83,35 @@ namespace Utils {
         }
 
         // assemble the full path from the components
-        string CanName = "/" + JoinStrs (Toks, "/");
+        string CanName = JoinStrs (Toks, "/");
+
+        // restore leading /
+        if (abs)
+            CanName.insert (0, 1, '/');
+
         return CanName;
     }
 
-    string JoinStrs (const vecstr &Parts, const string &Sep) {
-        string Joined;
-        bool first = 1;
-        for (auto &Part : Parts) {
-            if (!first)
-                Joined += Sep;
-            Joined += Part;
-            first = false;
+    string CanonizeFileName (const string &RawName, const string &CWD) {
+        string FullName;
+
+        // prepend current directory to name, if needed
+        if (RawName[0] == '/') {
+            FullName = RawName;
+        } else {
+            string CwdStr;
+            if (CWD.size()==0) {
+                char cwd [4000];
+                if (getcwd (cwd, sizeof(cwd)) == NULL)
+                    THROW_PBEXCEPTION ("getcwd failed: ");
+                CwdStr = string (cwd);
+            } else {
+                CwdStr = CWD;
+            }
+            FullName = CwdStr + "/" + RawName;
         }
-        return Joined;
+
+        return CanonizeFileNameNoCWD (FullName);
     }
 
     fstream OpenReadStream (const string &Name) {

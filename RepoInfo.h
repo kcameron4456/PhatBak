@@ -4,8 +4,9 @@
 #include <string>
 using namespace std;
 
-#define PHATBAK_REPO_ID "Is_PhatBak_Repo"
-#define PHATBAK_ARCH_ID "Is_PhatBak_Archive"
+#define PHATBAK_REPO_ID       "Is_PhatBak_Repo"
+#define PHATBAK_ARCH_ID       "Is_PhatBak_Archive"
+#define PHATBAK_ARCH_FINISHED "PhatBak_Archive_Finished"
 
 class RepoInfo {
     public:

@@ -39,27 +39,35 @@ class Opts {
     string    BaseArchive;      // user-specified base archive
     bool      DebugPrint;       // true output trace info for debug
 
-    enum      {DoUndef  , DoCreate,
-               DoExtract, DoTest,
-               DoList   , DoCompare,
-               DoShowLatest,
-               DoInit
-              } Operation; // what to do
+    enum OpEnum { DoUndef = 0
+                 ,DoInit
+                 ,DoCreate
+                 ,DoExtract
+                 ,DoTest
+                 ,DoCompare
+                 ,DoList
+                 ,DoShowLatest
+                 ,DoVersion
+                 ,DoVoid  // marks end of operations
+                } Operation; // what to do
 
     Opts ();
 
     void ParseCmdLine (const int argc, const char *argv[]);
 
-    const char *OpText () {
-        return Operation == DoUndef      ? "Undef"     :
-               Operation == DoCreate     ? "Create"    :
-               Operation == DoExtract    ? "Extract"   :
-               Operation == DoTest       ? "Test"      :
-               Operation == DoList       ? "List"      :
-               Operation == DoCompare    ? "Compare"   :
-               Operation == DoShowLatest ? "ShowLatest":
-               Operation == DoInit       ? "DoInit"    :
-                                           "Illegal"   ;
+    string OpText (OpEnum Op = DoUndef) {
+        if (Op == DoUndef)
+            Op = Operation;
+        return Op == DoUndef      ? "undef"   :
+               Op == DoInit       ? "init"    :
+               Op == DoCreate     ? "create"  :
+               Op == DoExtract    ? "extract" :
+               Op == DoTest       ? "test"    :
+               Op == DoCompare    ? "compare" :
+               Op == DoList       ? "list"    :
+               Op == DoShowLatest ? "latest"  :
+               Op == DoVersion    ? "version" :
+                                    "illegal" ;
     }
 
     void   Print      (fstream &F);

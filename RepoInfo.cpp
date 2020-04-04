@@ -7,7 +7,7 @@
 namespace fs = std::filesystem;
 
 RepoInfo::RepoInfo (const string &name) {
-    Name = name;
+    Name = Utils::CanonizeFileNameNoCWD (name);
     if (!fs::is_directory (Name)) {
         if (O.Operation == O.DoInit) {
             Utils::CreateDir (Name);
@@ -34,15 +34,17 @@ RepoInfo::RepoInfo (const string &name) {
 
         // find most recent standard archive (i.e. name is time in standaridized format)
         for (auto SubDir : SubDirs) {
-            if (!fs::exists (Name + "/" + SubDir + "/" + PHATBAK_ARCH_ID))
+            if (  !fs::exists (Name + "/" + SubDir + "/" + PHATBAK_ARCH_ID)
+               || !fs::exists (Name + "/" + SubDir + "/" + PHATBAK_ARCH_FINISHED)
+               )
                 continue;
             static const string Pattern = "XXXX_XX_XX_XXXX_XX";
             if (SubDir.size() != Pattern.size())
                 continue;
             string TempSubDir = SubDir;
-            for (size_t i = 0; i < TempSubDir.size(); i++)
-                if (TempSubDir[i] >= '0' && TempSubDir[i] <= '9')
-                    TempSubDir[i] = 'X';
+            for (char &c : TempSubDir)
+                if (c >= '0' && c <= '9')
+                    c = 'X';
             if (TempSubDir != Pattern)
                 continue;
             if (SubDir > LatestArchName)
@@ -57,7 +59,11 @@ void RepoInfo::Finish (const string &ArchName) {
 void RepoInfo::DoList () {
     vecstr SubDirs, SubFiles;
     Utils::SlurpDir (Name, SubDirs, SubFiles);
+    vecstr Archs;
     for (auto SubDir : SubDirs)
         if (fs::exists (Name + "/" + SubDir + "/" + PHATBAK_ARCH_ID))
-            printf ("%s::%s\n", Name.c_str(), SubDir.c_str());
+            Archs.push_back (Name + "::" + SubDir);
+    sort (Archs.begin(), Archs.end());
+    for (auto &Arch : Archs)
+        cout << Arch << endl;
 }

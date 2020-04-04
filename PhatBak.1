@@ -1,0 +1,132 @@
+.\" Manpage for PhatPak.
+.\" Contact phatbak@cameronfamily.org to correct errors or typos.
+.TH man 1 "31 Mar 2020" "0.5" "PhatBak man page"
+.SH NAME
+Phatbak \- Multithreaded file Backup/Restore utility
+.SH SYNOPSIS
+PhatBak init              <Repo>
+.br
+PhatBak create  [options] <Repo>[::Archive] [file/directory arguments]
+.br
+PhatBak extract [options] <Repo>[::Archive] [file/directory arguments]
+.br
+PhatBak test    [options] <Repo>[::Archive]
+.br
+PhatBak compare           <Repo>[::Archive] [file/directory arguments]
+.br
+PhatBak list              <Repo>[::Archive]
+.br
+PhatBak latest            <Repo>
+.br
+PhatBak version
+.br
+.SH DESCRIPTION
+PhatBak is a backup/restore utility designed to be fast, easy to use and space efficient.  All directories, files, symbolic links, fifos, and pipes are backed up and restored.  Permissions, ACLs, and modification times are retored as well.  Hard-link state is restored to the greatest degree possible (assuming all links to a file are backed up).
+.br
+
+.br
+A PhatBak repository (repo) is essentially just a directory.  The repo directory contains one or more archive directories.  An archive directory contains three main elements:
+.in +.5i
+List:
+.in +.5i
+A file containing the names of all archived files and directories (hereafter just called "files") along with attibutes such as permissions, ACLs, and modification time.
+.in -.5i
+Chunks:
+.in +.5i
+A directory containing chunks (portions) of data for regular files.  For performance, PhatBak avoids putting too many files within a single directory by splitting chunk indexes into a tree of directories of limited size (see --BlockNumModulus).
+.in -.5i
+FInfo:
+.in +.5i
+A directory containing files which point to chunks.  The directory structure is the same as the Chunks dir.
+.in -.5i
+.in -.5i
+.br
+
+.br
+When creating the second and subsequent archives in a repo, PhatBak will (by default) use the most recent archive as a "base".  When using a base archive, PhatBak just creates hard links to the base archive for any regular file whose size and modification time matches the base.  Otherwise, PhatBak will compare each chunk to the base archive and create hard links for each unchanged chunk and new chunk files for those that don't match.
+.br
+.SH OPERATIONS
+.br
+init
+.in +.5i
+Intialize a directory for use as a PhatBak repository.  If the directory doesn't exist, it will be created.
+.in -.5i
+.br
+create
+.in +.5i
+Create a backup archive from a list of files and directories to be backup up.  If the archive name isn't given, PhatBak with create an archive of the form "YYYY_MM_DD_HHMM_SS" based on the current time.  If no file arguments are given the current working directory will be archived.
+.in -.5i
+extract
+.in +.5i
+Extract archived files.  The files are placed into a new directory "PhatBackExtract" in the current working directory.  if "file/directory arguments" are given, extract only those files.  If no archive is specified, use the most recent archive as describe for "create."
+.in -.5i
+test
+.in +.5i
+Test the integrity of an archive.
+.in -.5i
+compare
+.in +.5i
+Compare an archive against existing files.  Limit to comparing file arguments, if given.
+.in -.5i
+list
+.in +.5i
+If only a repo is specified, list all archives.  If an archive is specified, list archived files.
+.in -.5i
+latest
+.in +.5i
+Print the name of the latest archive (of form YYYY_MM_DD_HHMM_SS) to stdout.
+.in -.5i
+version
+.in +.5i
+Display PhatBak version info and exit.
+.in -.5i
+.br
+.SH OPTIONS
+-v
+.in +.5i
+Display files while creating or extracting an archive.
+.in -.5i
+-T num
+.in +.5i
+Specify the number of helper threads to spawn.  Defaults to 100. Use 0 for single-threaded mode.
+.in -.5i
+--rebase
+.in +.5i
+For create operation, force a new base archive (instead of using existing archive as the base).
+.in -.5i
+--BaseArchive <base>
+.in +.5i
+For create operation, use the specified base archive instead of the automatically seleceted latest archive.
+.in -.5i
+--CompType <type>
+.in +.5i
+Type of compression to use.  Currently, only zstd compression is supported.  Defaults to "zstd".  Use "none" for uncompressed archive.
+.in -.5i
+--CompLevel <level>
+.in +.5i
+Amount of compression effort to use.  Defaults to "2".
+.in -.5i
+--HashType <type>
+.in +.5i
+Type of hash to use.  Supported hashes are "MD5", "CRC32", "SHA1", and "SHA256".  Defaults to "MD5".
+.in -.5i
+--ChunkSize <size>
+.in +.5i
+Size of file fragments (before compression) saved to the archive.  Defaults to "262144".
+.in -.5i
+--ExtractTarget <target>
+.in +.5i
+Directory to be created for extracted files.  Default is "./PhatBakExtract".
+.in -.5i
+--BlockNumModulus <modulus>
+.in +.5i
+Integer used to divide data blocks into directories and file names.  Determines tha maximum number of files or directories within each level of archive "FInfo" and "Chunks" dirs.  Default is "100".
+.in -.5i
+.SH RETURN VALUE
+PhatBak returns 0 on success, 1 if any error was detected.
+.SH SEE ALSO
+tar(1), borg(1)
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Kevin Cameron (phatbak@cameronfamily.org)

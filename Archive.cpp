@@ -21,6 +21,7 @@ Archive::Archive(RepoInfo *repo, const string &name) {
 
     ArchDirPath    = Repo->Name  + "/" + Name;
     IDPath         = ArchDirPath + "/" + PHATBAK_ARCH_ID;
+    FinishedPath   = ArchDirPath + "/" + PHATBAK_ARCH_FINISHED;
     ListPath       = ArchDirPath + "/List";
     LogPath        = ArchDirPath + "/PhatBak.log";
     OptionsPath    = ArchDirPath + "/Options";
@@ -485,6 +486,8 @@ ArchiveCreate::~ArchiveCreate () {
     LogFile << "Elasped Time: " << Secs << " seconds\n";
 
     LogFile.close();
+
+    Touch (FinishedPath);
 }
 
 void ArchiveCreate::PushListEntry (const FileListEntry &ListEntry) {

@@ -36,6 +36,7 @@ class Archive {
     string        Name;
     string        ArchDirPath;
     string        IDPath;
+    string        FinishedPath;
     string        ListPath;
     string        LogPath;
     string        OptionsPath;

@@ -1,5 +1,6 @@
 #include "Opts.h"
 #include "Utils.h"
+#include "Logging.h"
 
 #include <grp.h>
 #include <unistd.h>
@@ -20,53 +21,15 @@ Opts O;
     #define VERSION_MAJOR 0
 #endif
 #ifndef VERSION_MINOR
-    #define VERSION_MINOR 1
+    #define VERSION_MINOR 5
 #endif
 
 #define MAXARGVALLEN 1000   // maximum length of individual command line arguments
 
 static void PrintHelp(int rval=0) {
-    printf (R"(
-Usage: PhatBak [Operation Tags] [Flags] Repo::Archive [file/dir list]
-    Archives data to backup medium or device or Extract backed up data
-    Every effort is made to enable restoring:
-       File/Dir contents
-       File/Dir modification times
-       Hard links
-       Symbolic links
-    If ArchiveFile is '-' or not given, use stdin or stdout
-
-Arguments:
-    "Operation Args" Tags optional gnu-tar like tags in the set [cxtDvf].  Tags in [cxtDv] behave exactly
-    like the "-" versions of the flags shown below.  The "f" tag is similar except that the archive
-    file name can appear anywhere later on the command line.
-
-    Main Operation Flags (exactly one of these must be specified on the command line):
-    -c   Create       : Create an archive from the list of files and directories
-    -x   Extract      : Extract archived files into the current working directory
-    -t   Test         : Read archive file and test for conformance to PhatBak format
-
-    Optional Flags
-    -f   FileName     : Archive file name.  If "-" or not given, use stdin (Extract and Test) or stdout (Create)
-
-    -v   Show         : Show file names on stderr while writing or reading the archive file 
-    -D   Dump         : Show PhatBak file structure on stderr during Test
-
-    -T   Thread Count : Number of threads to allocate (default 200)
-                        Create only at this time
-                        Note these are generally lightweight threads which allow the create code to search
-                        well ahead and prime output buffers while a thread is busy copying a file
-
-    -Bs  Buffer Size  : Size of file copy buffers (default 300000)
-    -Bc  Buffer Count : Number of copy buffers (and threads) for each file (default 12)
-                        Doubled when compression is used
-
-    -iZ  Compress     : Compress file blocks during Create using zstdlib
-    -iZl Level        : Compression level (effort)
-
-    --version         : Output version information and exit
-
-    -h -help --help   : Display this help and exit
+    fprintf (stderr, "%s\n", R"(
+Usage: PhatBak <Operation> [Options] Repo[::Archive] [file/dir list]
+use "man PhatBak" for details
 )");
 
     exit (rval);
@@ -84,7 +47,7 @@ void PrintOpHelp () {
 }
 
 static void PrintVersion() {
-    fprintf (stderr, "Version:  %d.%d\n", VERSION_MAJOR, VERSION_MINOR);
+    printf ("Version:  %d.%d\n", VERSION_MAJOR, VERSION_MINOR);
     exit (0);
 }
 
@@ -155,7 +118,7 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     DebugPrint      = 0;
     BlockNumModulus = 100;
     Rebase          = false;
-    CWD             = fs::canonical(fs::current_path());
+    CWD             = fs::canonical(fs::current_path()); // resolves symlinks
 
     // save command line
     int argidx;
@@ -165,8 +128,38 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         CmdLine += argv[argidx];
     }
 
+    // first arg is operation
+    // allow abbreviations
+    if (argc < 2 || argv[1][0] == '\0')
+        ERROR ("No operation given\n");
+    const char *arg = argv[1];
+    vecstr MatchNames;
+    for (OpEnum i = (OpEnum)((int)DoUndef+1); i < DoVoid; i = (OpEnum)((int)i + 1))
+        if (OpText(i).find (arg) == 0)
+            MatchNames.push_back(OpText(i));
+    if (MatchNames.size() == 0)
+        ERROR ("Operation (%s) not recognized\n", arg);
+    if (MatchNames.size() > 1)
+        ERROR ("Operation (%s) is ambiguous, use one of %s\n", arg, Utils::JoinStrs(MatchNames, ",").c_str());
+         if (OpText (DoInit      ) == MatchNames[0]) Operation = DoInit      ;
+    else if (OpText (DoCreate    ) == MatchNames[0]) Operation = DoCreate    ;
+    else if (OpText (DoExtract   ) == MatchNames[0]) Operation = DoExtract   ;
+    else if (OpText (DoTest      ) == MatchNames[0]) Operation = DoTest      ;
+    else if (OpText (DoCompare   ) == MatchNames[0]) Operation = DoCompare   ;
+    else if (OpText (DoList      ) == MatchNames[0]) Operation = DoList      ;
+    else if (OpText (DoShowLatest) == MatchNames[0]) Operation = DoShowLatest;
+    else if (OpText (DoVersion   ) == MatchNames[0]) Operation = DoVersion   ;
+
+    // basic operation must be set
+    if (Operation == DoUndef)
+        THROW_PBEXCEPTION ("Unrecognized OpText: %s", MatchNames[0]);
+
+    // process version here
+    if (Operation == DoVersion)
+        PrintVersion();
+
     // step through all "-" and "--" args
-    for (argidx = 1; argidx < argc; argidx++) {
+    for (argidx = 2; argidx < argc; argidx++) {
         const char *arg = argv[argidx];
 
         // test non-minus arg
@@ -203,13 +196,6 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         }
 
         //int TmpInt = 0;
-        PARSE_MinusFlg ("-c"                 , TESTOP, Operation  , DoCreate    ,)
-        PARSE_MinusFlg ("-x"                 , TESTOP, Operation  , DoExtract   ,)
-        PARSE_MinusFlg ("-l"                 , TESTOP, Operation  , DoList      ,)
-        PARSE_MinusFlg ("-t"                 , TESTOP, Operation  , DoTest      ,)
-        PARSE_MinusFlg ("-p"                 , TESTOP, Operation  , DoCompare   ,)
-        PARSE_MinusFlg ("--latest"           , TESTOP, Operation  , DoShowLatest,)
-        PARSE_MinusFlg ("--init"             , TESTOP, Operation  , DoInit,)
         PARSE_MinusFlg ("-v"                ,, ShowFiles  , 1,)
         PARSE_MinusFlg ("-D"                ,, ShowFiles=ArchDiag, 1, )
         PARSE_MinusVal ("-T"                ,"%d", &NumThreads,)
@@ -223,15 +209,10 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
         PARSE_MinusFlg ("-h"                ,, arg       , arg, PrintHelp();)
         PARSE_MinusFlg ("-help"             ,, arg       , arg, PrintHelp();)
         PARSE_MinusFlg ("--help"            ,, arg       , arg, PrintHelp();)
-        PARSE_MinusFlg ("--version"         ,, arg       , arg, PrintVersion();)
         PARSE_MinusFlg ("--debug"           ,, DebugPrint,   1, ;)
 
         ArgError(arg);
     }
-
-    // basic operation must be set
-    if (Operation == DoUndef)
-        PrintHelp(1);
 
     // first remaining arg is the repo/archive name
     if (argidx >= argc) {
@@ -264,8 +245,6 @@ void Opts::ParseCmdLine (const int argc, const char *argv[]) {
     // default to cwd for create
     if (!FileArgs.size() && Operation == DoCreate)
         FileArgs.push_back (".");
-
-    //Print();
 }
 
 Opts::Opts () {

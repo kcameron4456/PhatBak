@@ -66,6 +66,7 @@ int main (int argc, const char **argv) {
         } else if (O.Operation == Opts::DoShowLatest) {
             auto Repo = new RepoInfo (O.RepoDirName);
             cout << Repo->LatestArchName << endl;
+            delete Repo;
         } else if (O.Operation == Opts::DoInit) {
             auto Repo = new RepoInfo (O.RepoDirName);
             delete Repo;
