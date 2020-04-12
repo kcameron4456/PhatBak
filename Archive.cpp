@@ -243,61 +243,66 @@ void ArchiveRead::DoExtract () {
 void ArchiveRead::DoList () {
     // create a list of files with first-order info
     string Line;
-    u64 LineCount = 1;
+    u64 LineCount = 0;
     while (getline (ListFile, Line)) {
+        LineCount ++;
+
         FileListEntry FLE = ParseListLine (Line, LineCount);
         printf ("%s\n", FLE.Name.c_str());
-
-        LineCount ++;
     }
 }
 
-static void FindBlockFiles (const string &Dir, const string &TopDir, map <i64, bool> &BlockMap) {
+static void FindBlockFiles (const string &Dir, const string &TopDir, map <i64, bool> &BlockMap, mutex &BlockMapMtx) {
     vecstr SubDirs, SubFiles;
     SlurpDir (Dir, SubDirs, SubFiles);
     for (auto File: SubFiles) {
         // check file name
         if (File.find_first_not_of ("0123456789") != string::npos)
-            ERROR ("Unexpected file: %s\n", (Dir + "/" + File).c_str());
+            WARN ("Unexpected file: %s\n", (Dir + "/" + File).c_str());
         i64 BlockIdx = strtoll (File.c_str(), NULL, 10);
-        if (BlockMap.count (BlockIdx))
-            ERROR ("Block #%ld seen twice in %s\n", BlockIdx, TopDir.c_str());
 
         // remember this block
+        BlockMapMtx.lock();
+        if (BlockMap.count (BlockIdx))
+            WARN ("Block #%ld seen twice in %s\n", BlockIdx, TopDir.c_str());
         BlockMap [BlockIdx] = 1;
+        BlockMapMtx.unlock();
     }
 
     // do subdirs
-    for (auto SubDir: SubDirs)
-        FindBlockFiles (Dir + "/" + SubDir, TopDir, BlockMap);
+    for (auto SubDir: SubDirs) {
+        function <void()> Task = [=,&BlockMap,&BlockMapMtx]() {
+            FindBlockFiles (Dir + "/" + SubDir, TopDir, BlockMap, BlockMapMtx);
+        };
+        ThreadPool.Execute (Task);
+    }
 }
 
-void ArchiveRead::DoTest () {
-    // find existing block files
-    map <i64, bool> FInfosMap, ChunksMap;
-    FindBlockFiles (FinfoDirPath, FinfoDirPath, FInfosMap);
-    FindBlockFiles (ChunkDirPath, ChunkDirPath, ChunksMap);
+void ArchiveRead::DoTestJob (const string ListLine, u64 LineCount
+                            ,map <i64, bool> &FInfosMap, map <i64, bool> &ChunksMap
+                            ,mutex &FInfosMapMtx, mutex &ChunksMapMtx
+                            ) {
 
-    // test all files in the archive
-    string Line;
-    u64 LineCount = 1;
-    while (getline (ListFile, Line)) {
-        FileListEntry ListEntry = ParseListLine (Line, LineCount);
-        if (O.ShowFiles)
-            printf ("%s\n", ListEntry.Name.c_str());
-        if (ListEntry.FInfoIdx < 0)
-            continue;
+    FileListEntry ListEntry = ParseListLine (ListLine, LineCount);
+    if (O.ShowFiles)
+        printf ("%s\n", ListEntry.Name.c_str());
+    if (ListEntry.FInfoIdx < 0)
+        return;
 
-        if (!FInfosMap.count(ListEntry.FInfoIdx))
-            ERROR ("%s line:%lu points to non-existant FInfo block: %ld\n", ListPath.c_str(), ListEntry.LineNo, ListEntry.FInfoIdx);
-        FInfosMap.erase(ListEntry.FInfoIdx);
+    FInfosMapMtx.lock();
+    bool DoFileCheck = FInfosMap.count(ListEntry.FInfoIdx) == 0;
+    FInfosMap[ListEntry.FInfoIdx] = 1;
+    FInfosMapMtx.unlock();
+    if (!DoFileCheck)
+        return; // another thread has done (or is doing) the check
 
-        auto AF = new ArchFileRead (this, ListEntry);
-        for (auto Chunk : AF->Chunks) { 
-            if (!ChunksMap.count (Chunk.ChunkIdx))
-                ERROR ("FInfo Block #%ld points to non-existant Chunk block:%ld\n", ListEntry.FInfoIdx, Chunk.ChunkIdx);
-            ChunksMap.erase (Chunk.ChunkIdx);
+    auto AF = new ArchFileRead (this, ListEntry);
+    for (auto Chunk : AF->Chunks) {
+        ChunksMapMtx.lock();
+        ChunksMap[Chunk.ChunkIdx] = 1;
+        ChunksMapMtx.unlock();
 
+        function <void()> Task = [=,this]() {
             // grab the chunk
             string ChunkData;
             ChunkBlocks->SlurpBlock (Chunk.ChunkIdx, ChunkData);
@@ -313,18 +318,47 @@ void ArchiveRead::DoTest () {
             // check hash
             string ChunkDataHash = HashStr (O.HashType, *SelData);
             if (ChunkDataHash != Chunk.Hash)
-                ERROR ("Hash mismatch on data chunk #%ld\n", Chunk.ChunkIdx);
-        }
-        delete AF;
-
-        LineCount ++;
+                WARN ("Hash mismatch on data chunk #%ld\n", Chunk.ChunkIdx);
+        };
+        ThreadPool.Execute (Task);
     }
+    delete AF;
+}
 
-    // all finfo and chunk blocks should have been seen
-    for (auto Itr : FInfosMap)
-        ERROR ("Unused FInfo block found: %ld\n", Itr.first);
-    for (auto Itr : ChunksMap)
-        ERROR ("Unused Chunk block found: %ld\n", Itr.first);
+void ArchiveRead::DoTest () {
+    // test all files in the archive
+    // record all used finfo and chunk blocks
+    map <i64, bool> UsedFInfosMap   , UsedChunksMap   ;
+    mutex           UsedFInfosMapMtx, UsedChunksMapMtx;
+    string Line;
+    u64 LineCount = 0;
+cout << "ArchiveRead::DoTest Start Read Files\n";
+    while (getline (ListFile, Line)) {
+        LineCount ++;
+        function <void()> Task = [&,this,Line,LineCount]() {
+            DoTestJob (Line, LineCount, UsedFInfosMap, UsedChunksMap, UsedFInfosMapMtx, UsedChunksMapMtx);
+        };
+        ThreadPool.Execute (Task);
+    }
+    ThreadPool.WaitIdle();
+cout << "ArchiveRead::DoTest End Read Files\n";
+
+    // find existing block files
+    map <i64, bool> FoundFInfosMap   , FoundChunksMap   ;
+    mutex           FoundFInfosMapMtx, FoundChunksMapMtx;
+cout << "ArchiveRead::DoTest Start FindBlockFiles\n";
+    FindBlockFiles (FinfoDirPath, FinfoDirPath, FoundFInfosMap, FoundFInfosMapMtx);
+    FindBlockFiles (ChunkDirPath, ChunkDirPath, FoundChunksMap, FoundChunksMapMtx);
+    ThreadPool.WaitIdle();
+cout << "ArchiveRead::DoTest End FindBlockFiles\n";
+
+    // make sure all finfo and chunk blocks are used
+    for (auto Itr : FoundFInfosMap)
+        if (!UsedFInfosMap.count(Itr.first))
+            ERROR ("Unused FInfo block found: %ld\n", Itr.first);
+    for (auto Itr : FoundChunksMap)
+        if (!UsedChunksMap.count(Itr.first))
+            ERROR ("Unused Chunk block found: %ld\n", Itr.first);
 }
 
 void ArchiveRead::DoCompareJob (const FileListEntry &ListEntry) {
@@ -394,8 +428,9 @@ void ArchiveRead::DoCompare () {
 
     // compare all files in the archive
     string Line;
-    u64 LineCount = 1;
+    u64 LineCount = 0;
     while (getline (ListFile, Line)) {
+        LineCount ++;
         FileListEntry ListEntry = ParseListLine (Line, LineCount);
 
         // filter against file args used during the archive creation
@@ -422,11 +457,11 @@ void ArchiveRead::DoCompare () {
 ArchiveBase::ArchiveBase (RepoInfo *repo, const string &name) : ArchiveRead (repo, name) {
     // create a list of files with first-order info
     string Line;
-    u64 LineCount = 1;
+    u64 LineCount = 0;
     while (getline (ListFile, Line)) {
+        LineCount ++;
         FileListEntry FLE = ParseListLine (Line, LineCount);
         FileMap [FLE.Name] = FLE;
-        LineCount ++;
     }
 }
 
@@ -719,7 +754,7 @@ void ArchFileCreate::Create (InodeInfo *Inode) {
                 };
                 ThreadPool.Execute (Task, 0);
 
-                // process and returns that are ready
+                // process any returns that are ready
                 CheckReturns (0);
 
                 ChunkIdx++;

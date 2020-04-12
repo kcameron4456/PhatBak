@@ -71,6 +71,10 @@ class ArchiveRead : public Archive {
     void DoExtract    ();
     void DoExtractJob (const string &ListLine, u64 LineNo);
     void DoList       ();
+    void DoTestJob    (const string ListLine, u64 LineCount
+                      ,map <i64, bool> &FInfosMap, map <i64, bool> &ChunksMap
+                      ,mutex &FInfosMapMtx, mutex &ChunksMapMtx
+                      );
     void DoTest       ();
     void DoCompareJob (const FileListEntry &ListEntry);
     void DoCompare    ();
